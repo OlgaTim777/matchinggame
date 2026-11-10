@@ -110,7 +110,7 @@
         .bulk-upload-area .img-btn:hover { background: #b2bec3; }
         .file-count { font-size: 12px; color: var(--primary); font-weight: 800; margin-top: 5px; }
 
-        /* ========= СТИЛИ ДЛЯ НОВЫХ ФУНКЦИЙ (Этапы 3, 4, 5) ========= */
+        /* ========= СТИЛИ ЭТАПОВ 3,4,5 ========= */
         .face-down { background: var(--secondary) !important; color: transparent !important; }
         .face-down img { opacity: 0; }
         .heart { color: var(--error); font-size: 24px; margin: 0 2px; }
@@ -356,7 +356,8 @@
         </aside>
 
         <main class="canvas-wrapper">
-            <header class="canvas-header">
+            <!-- ИСПРАВЛЕНИЕ 4: canvas-header используется как game-header для совместимости -->
+            <header class="canvas-header" id="game-header-el">
                 <div id="game-stats" style="visibility: hidden; display: flex; gap: 20px; align-items: center; width:100%;">
                     
                     <div id="duel-ui" class="duel-ui" style="display:none; width:auto; margin:0; gap:10px;">
@@ -559,7 +560,7 @@
                 modes_title: "Режим", mode_edit: "✏️ 1. Редактирование", mode_start: "🏠 2. Стартовая", mode_play: "🎮 3. Игра", mode_fb: "🏆 4. Фидбек",
                 export_title: "Экспорт", exp_imp: "📂 Загрузить JSON", exp_json: "💾 Сохранить JSON", exp_html: "🌐 Скачать HTML", exp_ifr: "🔗 Код для Genially",
                 alert_no_data: "Нет данных для генерации!", alert_saved: "Успешно сохранено!", msg_win: "Победа! 🎉", msg_lose: "Время вышло! ⏰", cert_title: "СЕРТИФИКАТ", cert_desc: "За успешное прохождение образовательной игры", cert_date: "Дата:",
-                duel_title: "👥 Дуэль", duel_enable: "Включить режим дуэли", duel_p1: "Игрок 1:", duel_p2: "Игрок 2:", duel_turn: "Ход:", duel_winner: "Победитель:", duel_draw: "Ничья!", duel_warning: "Дуэль доступна в классическом режиме",
+                duel_title: "👥 Дуэль", duel_enable: "Включить режим дуэли", duel_p1: "Игрок 1", duel_p2: "Игрок 2", duel_turn: "Ход:", duel_winner: "Победитель:", duel_draw: "Ничья!", duel_warning: "Дуэль доступна в классическом режиме",
                 analytics_title: "📊 Аналитика", analytics_last: "Показать аналитику", analytics_json: "Скачать JSON", analytics_csv: "Скачать CSV", analytics_hard: "Сложные слова:", analytics_avg_time: "Среднее время:", analytics_recommend: "Рекомендации:",
                 share_title: "📱 Обмен игрой", share_code: "Код обмена", share_copy: "Скопировать", share_import: "Загрузить из кода", share_placeholder: "Вставьте код MGB5...", share_too_large: "Игра большая. Используйте HTML.",
                 wheel_title: "🎡 Колесо фортуны", wheel_enable: "Включить колесо", wheel_task: "Тип задания:", wheel_speak: "Озвучивать слово", wheel_show_pair: "Показывать пару", wheel_btn: "🎡 Колесо Speaking", wheel_spin: "Крутить ещё", wheel_done: "Готово",
@@ -586,7 +587,7 @@
                 modes_title: "Mode", mode_edit: "✏️ 1. Editor", mode_start: "🏠 2. Start Screen", mode_play: "🎮 3. Play", mode_fb: "🏆 4. Feedback",
                 export_title: "Export", exp_imp: "📂 Import JSON", exp_json: "💾 Save JSON", exp_html: "🌐 Download HTML", exp_ifr: "🔗 Code for Genially",
                 alert_no_data: "No data to generate!", alert_saved: "Successfully saved!", msg_win: "Victory! 🎉", msg_lose: "Time's Up! ⏰", cert_title: "CERTIFICATE", cert_desc: "For successfully completing the educational game", cert_date: "Date:",
-                duel_title: "👥 Duel", duel_enable: "Enable duel mode", duel_p1: "Player 1:", duel_p2: "Player 2:", duel_turn: "Turn:", duel_winner: "Winner:", duel_draw: "Draw!", duel_warning: "Duel is available in classic mode",
+                duel_title: "👥 Duel", duel_enable: "Enable duel mode", duel_p1: "Player 1", duel_p2: "Player 2", duel_turn: "Turn:", duel_winner: "Winner:", duel_draw: "Draw!", duel_warning: "Duel is available in classic mode",
                 analytics_title: "📊 Analytics", analytics_last: "Show analytics", analytics_json: "Download JSON", analytics_csv: "Download CSV", analytics_hard: "Difficult words:", analytics_avg_time: "Avg. time:", analytics_recommend: "Recommendations:",
                 share_title: "📱 Share Game", share_code: "Share code", share_copy: "Copy", share_import: "Load from code", share_placeholder: "Paste MGB5 code...", share_too_large: "Game is large. Use HTML export.",
                 wheel_title: "🎡 Wheel of Fortune", wheel_enable: "Enable wheel", wheel_task: "Task type:", wheel_speak: "Speak the word", wheel_show_pair: "Show pair", wheel_btn: "🎡 Speaking Wheel", wheel_spin: "Spin again", wheel_done: "Done",
@@ -620,7 +621,8 @@
                         gameMode: 'match',
                         duelEnabled: false, duelP1: "Player 1", duelP2: "Player 2",
                         wheelEnabled: false, wheelTask: "say_sentence", wheelSpeak: true, wheelShow: false,
-                        creatorEnabled: false, creatorMax: 10, leaderboardEnabled: false
+                        creatorEnabled: false, creatorMax: 10, leaderboardEnabled: false,
+                        heartsEnabled: true, heartsMax: 3, spacedEnabled: false
                     },
                     pairs: [], distractors: []
                 };
@@ -630,6 +632,7 @@
                 
                 this.duelTurn = 1; this.duelScoreP1 = 0; this.duelScoreP2 = 0;
                 this.sessionAnalytics = null; this.dragStartTime = 0;
+                this.heartsLeft = 0; this.flippedMemoryCards = []; this.memoryMoves = 0;
 
                 this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 this.bgAudio = new Audio(); this.bgAudio.loop = true;
@@ -693,6 +696,10 @@
                 document.getElementById('import-student-input').addEventListener('change', (e) => this.importStudentGame(e));
                 
                 document.getElementById('wheel-spin-btn').addEventListener('click', () => this.spinWheel());
+                
+                // chest listeners in editor
+                document.getElementById('chest-btn').addEventListener('click', () => this.openChest());
+                document.getElementById('open-chest-btn').addEventListener('click', () => this.openChest());
 
                 document.getElementById('set-font').addEventListener('change', e => { this.state.settings.visuals.font = e.target.value; this.applyVisualSettings(); });
                 document.getElementById('set-color').addEventListener('change', e => { this.state.settings.visuals.color = e.target.value; this.applyVisualSettings(); });
@@ -730,6 +737,8 @@
                                 if(this.state.settings.wheelEnabled === undefined) this.state.settings.wheelEnabled = false;
                                 if(this.state.settings.creatorEnabled === undefined) this.state.settings.creatorEnabled = false;
                                 if(this.state.settings.leaderboardEnabled === undefined) this.state.settings.leaderboardEnabled = false;
+                                if(this.state.settings.heartsEnabled === undefined) this.state.settings.heartsEnabled = true;
+                                if(this.state.settings.spacedEnabled === undefined) this.state.settings.spacedEnabled = false;
                                 this.applyVisualSettings(); this.renderCanvas(); this.updateDistTotal(); alert(i18n[currentLang].alert_saved);
                             }
                         } catch (err) { alert("Ошибка JSON / JSON Error: " + err.message); }
@@ -853,6 +862,48 @@
                 document.querySelector(`input[value="${newMode}"]`).checked = true;
             }
 
+            // ИСПРАВЛЕНИЕ 6: Методы для работы Editor Play Mode (аналогично плееру)
+            renderHearts() {
+                const hc = document.getElementById('hearts-container');
+                if(this.state.settings.heartsEnabled) {
+                    hc.style.display = 'flex'; this.heartsLeft = this.state.settings.heartsMax || 3;
+                    hc.innerHTML = Array(this.heartsLeft).fill('<span class="heart">❤️</span>').join('');
+                } else { hc.style.display = 'none'; }
+            }
+            loseHeart() {
+                if(!this.state.settings.heartsEnabled) return;
+                this.heartsLeft--; const hc = document.getElementById('hearts-container'); const hearts = hc.querySelectorAll('.heart');
+                if(hearts.length > this.heartsLeft && hearts[this.heartsLeft]) { hearts[this.heartsLeft].classList.add('broken'); hearts[this.heartsLeft].textContent = '💔'; }
+                if(this.heartsLeft <= 0) this.endGame(false);
+            }
+            updateSpacedHistory() {
+                if(!this.state.settings.spacedEnabled) return;
+                let count = this.mistakes.size;
+                if(count > 0) { document.getElementById('spaced-msg-container').style.display = 'block'; document.getElementById('spaced-count').textContent = count; }
+            }
+            checkMemoryMatch(el) {
+                if(this.state.settings.gameMode !== 'memory') return;
+                if(!el.classList.contains('face-down') || this.flippedMemoryCards.length >= 2) return;
+                el.classList.remove('face-down'); this.flippedMemoryCards.push(el);
+                if(this.flippedMemoryCards.length === 2) {
+                    this.memoryMoves++; document.getElementById('memory-moves-ui').textContent = this.memoryMoves; document.getElementById('memory-moves-container').style.display = 'block';
+                    const [c1, c2] = this.flippedMemoryCards;
+                    if(c1.dataset.pairId === c2.dataset.pairId) {
+                        setTimeout(() => {
+                            c1.classList.add('matched'); c2.classList.add('matched'); this.score += this.state.settings.reward; document.getElementById('score').textContent = this.score;
+                            this.showFloatingText('+' + this.state.settings.reward, parseFloat(c2.style.left), parseFloat(c2.style.top)-30, 'success'); this.flippedMemoryCards = [];
+                            if(this.canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) this.endGame(true);
+                        }, 500);
+                    } else {
+                        setTimeout(() => { c1.classList.add('face-down'); c2.classList.add('face-down'); this.mistakes.add(c1.dataset.pairId); this.score -= this.state.settings.penalty; document.getElementById('score').textContent = this.score; this.loseHeart(); this.flippedMemoryCards = []; }, 1000);
+                    }
+                }
+            }
+            openChest() {
+                const btn = document.getElementById('chest-btn'); btn.classList.add('opening');
+                setTimeout(() => { btn.classList.remove('opening'); btn.classList.add('opened'); btn.textContent = '🎉'; document.getElementById('chest-result').textContent = '+50 Coins!'; document.getElementById('open-chest-btn').style.display = 'none'; }, 1000);
+            }
+
             startGame(pairsToPlay, distractorsToPlay = this.state.distractors || []) {
                 document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
                 document.querySelector('.canvas-header').style.visibility = 'visible';
@@ -864,6 +915,8 @@
                 this.consecutiveMistakes = 0; this.isAdaptiveActive = false; this.canvas.classList.remove('adaptive-active'); this.pairMistakes.clear();
                 
                 this.score = 0; this.comboCount = 0; this.timeLeft = this.state.settings.timeLimit || 60;
+                this.speedReserve = []; this.flippedMemoryCards = []; this.memoryMoves = 0; this.renderHearts();
+                
                 this.sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('student-name-input').value || 'Student', gameMode: this.state.settings.gameMode, pairs: {} };
                 this.activePairs.forEach(p => { this.sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
                 
@@ -957,6 +1010,7 @@
                 if (this.state.settings.wheelEnabled && isWin && !isPreview && this.activePairs.length > 0) { document.getElementById('btn-open-wheel').style.display = 'inline-block'; } 
                 else { document.getElementById('btn-open-wheel').style.display = 'none'; }
 
+                this.updateSpacedHistory();
                 this.feedbackScreen.classList.add('active');
             }
 
@@ -981,7 +1035,9 @@
             onPointerDown(e) {
                 const target = e.target.closest('.game-item'); if (!target) return;
                 if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-                if (this.mode === 'play' && this.state.settings.gameMode === 'memory' && target.classList.contains('face-down')) target.classList.remove('face-down');
+                if (this.mode === 'play' && this.state.settings.gameMode === 'memory' && target.classList.contains('face-down')) {
+                    this.checkMemoryMatch(target); return;
+                }
                 this.dragStartTime = Date.now();
                 this.draggedItem = { el: target, startX: e.clientX, startY: e.clientY, initialLeft: parseFloat(target.style.left||0), initialTop: parseFloat(target.style.top||0) };
                 target.setPointerCapture(e.pointerId); target.style.zIndex = 1000;
@@ -1016,7 +1072,7 @@
                             this.distractorMistakes.push({ drag: el.innerHTML, drop: dropTarget.innerHTML });
                             this.comboCount = 0; this.updateComboDOM();
                             
-                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; }
+                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; this.loseHeart(); }
                             
                             if(navigator.vibrate) navigator.vibrate(200);
                             this.showFloatingText(`-${actualPenalty} 🎭`, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top - 30, 'error');
@@ -1041,12 +1097,15 @@
                             }
                             
                             dropTarget.classList.add('flash'); el.style.opacity = '0';
-                            setTimeout(() => { el.classList.add('matched'); dropTarget.classList.add('matched'); dropTarget.classList.remove('flash'); if (this.canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) this.endGame(true); }, 400);
+                            setTimeout(() => { 
+                                el.classList.add('matched'); dropTarget.classList.add('matched'); dropTarget.classList.remove('flash'); 
+                                if (this.canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) this.endGame(true); 
+                            }, 400);
                         } else {
                             if(this.sessionAnalytics && this.sessionAnalytics.pairs[pid]) this.sessionAnalytics.pairs[pid].mistakes++;
                             this.mistakes.add(el.dataset.pairId); this.comboCount = 0; this.updateComboDOM();
                             
-                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; }
+                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; this.loseHeart(); }
                             this.showFloatingText(`-${actualPenalty}`, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top - 30, 'error');
                             if(navigator.vibrate) navigator.vibrate(200);
                             el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); this.returnItemToStart(el);
@@ -1102,7 +1161,7 @@
             updateStatePosition(id, type, x, y) { const p = this.state.pairs.find(p=>p.id===id); if(p) { p[type==='1'?'item1':'item2'].x=x; p[type==='1'?'item1':'item2'].y=y; } }
             updateComboDOM() { const ui = this.comboDisplay; if(this.comboCount>=3){ ui.style.display='block'; this.comboMult.textContent=this.comboCount>=5?'3':'2'; ui.style.color=this.comboCount>=5?'#9C27B0':'#FFB300'; } else ui.style.display='none'; }
 
-            // Stage 5 Local Functions
+            // Локальный рейтинг в редакторе
             renderLeaderboard() {
                 const lb = getLS('mgb_leaderboard', []); const c = document.getElementById('leaderboard-fb-container'); const list = document.getElementById('leaderboard-list'); list.innerHTML = '';
                 if(lb.length > 0) { c.style.display = 'block'; lb.slice(0,5).forEach((entry, i) => { list.innerHTML += `<div class="leaderboard-item ${entry.score === this.score ? 'highlight':''}"><span style="color:#636e72;">#${i+1}</span> ${entry.name} <span>${entry.score} pts (${entry.accuracy}%)</span></div>`; }); } else c.style.display = 'none';
@@ -1113,6 +1172,7 @@
                 this.downloadFile("data:text/csv;charset=utf-8," + encodeURIComponent(csv), "leaderboard.csv");
             }
 
+            // Умная аналитика в редакторе
             showAnalyticsModal() {
                 const hist = getLS('mgb_analytics_history', []); if(hist.length === 0) return alert('Нет данных / No data yet');
                 const last = hist[0]; let html = `<p><b>Студент:</b> ${last.studentName} | <b>Очки:</b> ${last.totalScore} | <b>Точность:</b> ${last.accuracy}%</p>`;
@@ -1174,28 +1234,19 @@
                 ctx.font = '600 18px sans-serif'; ctx.fillStyle = '#b2bec3'; ctx.fillText(i18n[currentLang].cert_date + ' ' + new Date().toLocaleDateString(), 400, 520);
                 const a = document.createElement('a'); a.download = 'certificate.png'; a.href = c.toDataURL('image/png'); a.click();
             }
-exportJSON() { 
-                const d = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({lang: currentLang, state: this.state}, null, 2)); 
-                this.downloadFile(d, 'game_state.json'); 
-            }
+
+            exportJSON() { const d = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({lang: currentLang, state: this.state}, null, 2)); this.downloadFile(d, 'game_state.json'); }
             
-            exportStandaloneHTML() { 
-                const html = this.generateStandaloneHTMLContent(); 
-                this.downloadFile("data:text/html;charset=utf-8," + encodeURIComponent(html), 'matching_game_player.html'); 
-            }
+            exportStandaloneHTML() { const html = this.generateStandaloneHTMLContent(); this.downloadFile("data:text/html;charset=utf-8," + encodeURIComponent(html), 'matching_game_player.html'); }
             
-            exportIframe() { 
-                prompt(i18n[currentLang].exp_ifr +":", `<iframe srcdoc="${this.generateStandaloneHTMLContent().replace(/"/g, '&quot;')}" width="100%" height="600px" frameborder="0" allowfullscreen></iframe>`); 
-            }
+            exportIframe() { prompt(i18n[currentLang].exp_ifr +":", `<iframe srcdoc="${this.generateStandaloneHTMLContent().replace(/"/g, '&quot;')}" width="100%" height="600px" frameborder="0" allowfullscreen></iframe>`); }
             
-            downloadFile(dataStr, filename) { 
-                const a = document.createElement('a'); a.href = dataStr; a.download = filename; 
-                document.body.appendChild(a); a.click(); a.remove(); 
-            }
+            downloadFile(dataStr, filename) { const a = document.createElement('a'); a.href = dataStr; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
 
             generateStandaloneHTMLContent() {
-                const langData = JSON.stringify(i18n[currentLang]);
-                const stateData = JSON.stringify(this.state);
+                // ИСПРАВЛЕНИЕ 5: Полностью собранный HTML-плеер со всеми стилями и функциями
+                const langData = JSON.stringify(i18n[currentLang]).replace(/<\/script>/gi, '<\\/script>');
+                const stateData = JSON.stringify(this.state).replace(/<\/script>/gi, '<\\/script>');
                 return `<!DOCTYPE html>
 <html lang="${currentLang}">
 <head>
@@ -1286,7 +1337,7 @@ exportJSON() {
         
         <div class="teacher-code-box"><span id="t-fb-tc"></span> <span id="t-code" style="letter-spacing: 2px;"></span></div>
         <div id="chest-ui" style="display:none; margin: 15px 0; display:flex; flex-direction:column; align-items:center;">
-            <div id="chest-btn" class="chest-icon">🎁</div><button id="open-chest-btn" class="btn-gold" style="margin-top:10px;">Открыть сундук!</button><div id="chest-result" style="font-weight:bold; color:var(--accent); font-size:20px; margin-top:10px; min-height:24px;"></div>
+            <div id="chest-btn" class="chest-icon" onclick="openChest()">🎁</div><button id="open-chest-btn" class="btn-gold" style="margin-top:10px;" onclick="openChest()">Открыть сундук!</button><div id="chest-result" style="font-weight:bold; color:var(--accent); font-size:20px; margin-top:10px; min-height:24px;"></div>
         </div>
 
         <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; width:100%; max-width:800px;">
@@ -1330,19 +1381,26 @@ exportJSON() {
         function getLS(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e){ return def; } }
         function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
         
+        // Определение констант геймификации в плеере
         const ACH_DEFS = [ {id:'first_win', icon:'🌟', hint:'Первая победа'}, {id:'sniper', icon:'🎯', hint:'100% точность'}, {id:'lightning', icon:'⚡', hint:'Игра за <30 сек'}, {id:'combo_master', icon:'🔥', hint:'Combo x5'}, {id:'trap_catcher', icon:'🎭', hint:'Без ошибок на ловушках'}, {id:'brainiac', icon:'🧠', hint:'Memory пройден'}, {id:'audio_ninja', icon:'🎧', hint:'Listen пройден'}, {id:'flawless', icon:'💎', hint:'3 игры без ошибок'}, {id:'champion', icon:'👑', hint:'1000+ баллов'} ];
-        
+        const THEMES = { default: {bg:'#f0f8ff', panel:'#ffffff', border:'#d1d8e0', primary:'#ff7675', hover:'#d63031', secondary:'#00cec9', accent:'#fdcb6e', error:'#ff4757', text:'#2d3436'}, space: {bg:'#1a1a2e', panel:'#16213e', border:'#0f3460', primary:'#00ff88', hover:'#00cc6a', secondary:'#ff00ff', accent:'#00ff88', error:'#ff0055', text:'#ffffff'}, detective: {bg:'#f4e4c1', panel:'#e8d5a8', border:'#8b4513', primary:'#8b4513', hover:'#5d2e0c', secondary:'#a0522d', accent:'#d2691e', error:'#8b0000', text:'#3e2723'}, magic: {bg:'#2d1b4e', panel:'#3d2b5e', border:'#6c5ce7', primary:'#a29bfe', hover:'#6c5ce7', secondary:'#fdcb6e', accent:'#fdcb6e', error:'#ff4757', text:'#ffffff'}, ocean: {bg:'#e0f7fa', panel:'#b2ebf2', border:'#00acc1', primary:'#00acc1', hover:'#00838f', secondary:'#ffeaa7', accent:'#ffeaa7', error:'#ff4757', text:'#2d3436'} };
+
         function launchConfetti() { const canvas = document.createElement('canvas'); canvas.style.position = 'fixed'; canvas.style.top = '0'; canvas.style.left = '0'; canvas.style.width = '100%'; canvas.style.height = '100%'; canvas.style.pointerEvents = 'none'; canvas.style.zIndex = '9999'; document.body.appendChild(canvas); const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight; const particles = []; const colors = ['#ff7675', '#00cec9', '#fdcb6e', '#a29bfe']; for(let i=0; i<100; i++) particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, r: Math.random() * 6 + 4, dx: Math.random() * 4 - 2, dy: Math.random() * 3 + 2, color: colors[Math.floor(Math.random() * colors.length)], tilt: Math.random() * 10 }); let frame; let start = Date.now(); function render() { ctx.clearRect(0,0, canvas.width, canvas.height); let alive = false; particles.forEach(p => { p.y += p.dy; p.x += p.dx; p.tilt += 0.1; if(p.y < canvas.height) alive = true; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.tilt)*10, p.y, p.r, 0, Math.PI*2); ctx.fillStyle = p.color; ctx.fill(); }); if(Date.now() - start < 3000 && alive) frame = requestAnimationFrame(render); else { canvas.remove(); cancelAnimationFrame(frame); } } render(); }
 
         const state = ${stateData};
         const i18n = ${langData};
         
-        document.getElementById('stud-name').placeholder = i18n.ui_name_ph; document.getElementById('btn-start').textContent = i18n.ui_start;
-        document.getElementById('t-score').textContent = i18n.ui_score; document.getElementById('t-time').textContent = i18n.ui_time;
-        document.getElementById('t-copy').textContent = i18n.copyright; document.getElementById('t-fb-score').textContent = i18n.ui_score_res;
-        document.getElementById('t-fb-acc').textContent = i18n.ui_acc; document.getElementById('t-fb-tc').textContent = i18n.ui_tcode;
-        document.getElementById('btn-retry').textContent = i18n.ui_retry; document.getElementById('btn-restart').textContent = i18n.restart || 'Restart';
-        document.getElementById('btn-cert').textContent = i18n.ui_cert;
+        document.getElementById('stud-name').placeholder = i18n.ui_name_ph || 'Enter your name...'; 
+        document.getElementById('btn-start').textContent = i18n.ui_start || 'Start Game';
+        document.getElementById('t-score').textContent = i18n.ui_score || 'Score:'; 
+        document.getElementById('t-time').textContent = i18n.ui_time || 'Time:';
+        document.getElementById('t-copy').textContent = i18n.copyright || ''; 
+        document.getElementById('t-fb-score').textContent = i18n.ui_score_res || 'Your Score:';
+        document.getElementById('t-fb-acc').textContent = i18n.ui_acc || 'Accuracy:'; 
+        document.getElementById('t-fb-tc').textContent = i18n.ui_tcode || 'Teacher Code:';
+        document.getElementById('btn-retry').textContent = i18n.ui_retry || 'Retry Mistakes'; 
+        document.getElementById('btn-restart').textContent = i18n.restart || 'Restart';
+        document.getElementById('btn-cert').textContent = i18n.ui_cert || 'Certificate';
         document.getElementById('t-leader').textContent = i18n.leader_top || 'Top results';
         document.getElementById('t-wheel-title').textContent = i18n.wheel_title || 'Wheel';
         document.getElementById('t-wheel-done').textContent = i18n.wheel_done || 'Done';
@@ -1356,10 +1414,71 @@ exportJSON() {
         let consecutiveMistakes = 0, isAdaptiveActive = false, pairMistakes = new Map();
         let sessionAnalytics = null, dragStartTime = 0;
         let duelTurn = 1, duelScoreP1 = 0, duelScoreP2 = 0;
+        let heartsLeft = 0, flippedMemoryCards = [], memoryMoves = 0;
         
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const bgAudio = new Audio(); if(state.settings.audio.bgMusicBase64){ bgAudio.src = state.settings.audio.bgMusicBase64; bgAudio.loop = true; }
-        
+
+        // ИСПРАВЛЕНИЕ 6: Полноценная реализация функций плеера
+        function renderHearts() {
+            const hc = document.getElementById('hearts-container');
+            if(state.settings.heartsEnabled) {
+                hc.style.display = 'flex'; heartsLeft = state.settings.heartsMax || 3;
+                hc.innerHTML = Array(heartsLeft).fill('<span class="heart">❤️</span>').join('');
+            } else { hc.style.display = 'none'; }
+        }
+        function loseHeart() {
+            if(!state.settings.heartsEnabled) return;
+            heartsLeft--; const hc = document.getElementById('hearts-container'); const hearts = hc.querySelectorAll('.heart');
+            if(hearts.length > heartsLeft && hearts[heartsLeft]) { hearts[heartsLeft].classList.add('broken'); hearts[heartsLeft].textContent = '💔'; }
+            if(heartsLeft <= 0) endGame(false);
+        }
+        function updateSpacedHistory() {
+            if(!state.settings.spacedEnabled) return;
+            let count = mistakes.size;
+            if(count > 0) { document.getElementById('spaced-msg-container').style.display = 'block'; document.getElementById('spaced-count').textContent = count; }
+        }
+        function updateDuelUI() {
+            document.getElementById('duel-s1').textContent = duelScoreP1; document.getElementById('duel-s2').textContent = duelScoreP2;
+            document.getElementById('duel-p1-ui').className = \`duel-player \${duelTurn === 1 ? 'active-turn' : ''}\`;
+            document.getElementById('duel-p2-ui').className = \`duel-player \${duelTurn === 2 ? 'active-turn' : ''}\`;
+            const n = duelTurn === 1 ? (state.settings.duelP1 || i18n.duel_p1) : (state.settings.duelP2 || i18n.duel_p2);
+            document.getElementById('duel-turn-ui').textContent = \`\${i18n.duel_turn || 'Turn:'} \${n}\`;
+        }
+        function spinWheel() {
+            if(activePairs.length === 0) return; const anim = document.getElementById('wheel-spin-anim'); anim.style.transition = 'none'; anim.style.transform = 'rotate(0deg)';
+            setTimeout(() => { anim.style.transition = 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)'; anim.style.transform = 'rotate(' + (360 * 5 + Math.random() * 360) + 'deg)'; }, 50);
+            setTimeout(() => {
+                const p = activePairs[Math.floor(Math.random()*activePairs.length)]; const txt = p.item2.content.replace(/<[^>]+>/g,'').trim() || p.item1.content.replace(/<[^>]+>/g,'').trim();
+                document.getElementById('wheel-result-txt').innerHTML = state.settings.wheelShow ? \`\${p.item1.content} = \${p.item2.content}\` : p.item1.content;
+                let prompt = ""; if(state.settings.wheelTask === 'say_word') prompt = "Say the word loudly!"; if(state.settings.wheelTask === 'say_sentence') prompt = "Make a sentence with it!"; if(state.settings.wheelTask === 'translate') prompt = "Translate it!"; if(state.settings.wheelTask === 'explain') prompt = "Explain it in English!";
+                document.getElementById('wheel-task-txt').textContent = prompt;
+                if(state.settings.wheelSpeak && txt) { const utter = new SpeechSynthesisUtterance(txt); if(state.settings.speechLang && state.settings.speechLang !== 'auto') utter.lang = state.settings.speechLang; speechSynthesis.speak(utter); }
+            }, 3000);
+        }
+        function checkMemoryMatch(el) {
+            if(state.settings.gameMode !== 'memory') return;
+            if(!el.classList.contains('face-down') || flippedMemoryCards.length >= 2) return;
+            el.classList.remove('face-down'); flippedMemoryCards.push(el);
+            if(flippedMemoryCards.length === 2) {
+                memoryMoves++; document.getElementById('memory-moves-ui').textContent = memoryMoves; document.getElementById('memory-moves-container').style.display = 'block';
+                const [c1, c2] = flippedMemoryCards;
+                if(c1.dataset.pairId === c2.dataset.pairId) {
+                    setTimeout(() => {
+                        c1.classList.add('matched'); c2.classList.add('matched'); score += state.settings.reward; document.getElementById('score').textContent = score;
+                        showFloat('+' + state.settings.reward, parseFloat(c2.style.left), parseFloat(c2.style.top)-30, 'success'); flippedMemoryCards = [];
+                        if(canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) endGame(true);
+                    }, 500);
+                } else {
+                    setTimeout(() => { c1.classList.add('face-down'); c2.classList.add('face-down'); mistakes.add(c1.dataset.pairId); score -= state.settings.penalty; document.getElementById('score').textContent = score; loseHeart(); flippedMemoryCards = []; }, 1000);
+                }
+            }
+        }
+        function openChest() {
+            const btn = document.getElementById('chest-btn'); btn.classList.add('opening');
+            setTimeout(() => { btn.classList.remove('opening'); btn.classList.add('opened'); btn.textContent = '🎉'; document.getElementById('chest-result').textContent = '+50 Coins!'; document.getElementById('open-chest-btn').style.display = 'none'; }, 1000);
+        }
+
         function startGame(pairs = state.pairs, distractors = (state.distractors || [])) {
             document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
             document.querySelector('.header').style.visibility = 'visible';
@@ -1368,6 +1487,7 @@ exportJSON() {
             
             activePairs = pairs; mistakes.clear(); distractorMistakes = []; score = 0; comboCount = 0; timeLeft = state.settings.timeLimit || 60;
             consecutiveMistakes = 0; isAdaptiveActive = false; canvas.classList.remove('adaptive-active'); pairMistakes.clear();
+            flippedMemoryCards = []; memoryMoves = 0; renderHearts();
             
             sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('stud-name').value || 'Student', gameMode: state.settings.gameMode, pairs: {} };
             activePairs.forEach(p => { sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
@@ -1396,15 +1516,13 @@ exportJSON() {
         function startRetryGame() { const arr = Array.from(mistakes); startGame(state.pairs.filter(p => arr.includes(p.id)), []); }
         function updateCombo() { const ui = document.getElementById('combo-ui'); if(comboCount>=3){ ui.style.display='block'; document.getElementById('c-m').textContent=comboCount>=5?'3':'2'; ui.style.color=comboCount>=5?'#9C27B0':'#FFB300'; } else ui.style.display='none'; }
         function showToast(msg) { const toast = document.createElement('div'); toast.className = 'adaptive-toast'; toast.textContent = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
-        function updateDuelUI() {
-            document.getElementById('duel-s1').textContent = duelScoreP1; document.getElementById('duel-s2').textContent = duelScoreP2;
-            document.getElementById('duel-p1-ui').className = \`duel-player \${duelTurn === 1 ? 'active-turn' : ''}\`;
-            document.getElementById('duel-p2-ui').className = \`duel-player \${duelTurn === 2 ? 'active-turn' : ''}\`;
-            const n = duelTurn === 1 ? (state.settings.duelP1 || i18n.duel_p1) : (state.settings.duelP2 || i18n.duel_p2);
-            document.getElementById('duel-turn-ui').textContent = \`\${i18n.duel_turn || 'Turn:'} \${n}\`;
-        }
-
-        canvas.addEventListener('pointerdown', e => { const t = e.target.closest('.game-item'); if(!t) return; draggedItem = { el: t, startX: e.clientX, startY: e.clientY, initialLeft: parseFloat(t.style.left||0), initialTop: parseFloat(t.style.top||0) }; if(state.settings.gameMode === 'memory' && t.classList.contains('face-down')) t.classList.remove('face-down'); dragStartTime = Date.now(); t.setPointerCapture(e.pointerId); t.style.zIndex = 1000; });
+        
+        canvas.addEventListener('pointerdown', e => { 
+            const t = e.target.closest('.game-item'); if(!t) return; 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (state.settings.gameMode === 'memory' && t.classList.contains('face-down')) { checkMemoryMatch(t); return; }
+            dragStartTime = Date.now(); draggedItem = { el: t, startX: e.clientX, startY: e.clientY, initialLeft: parseFloat(t.style.left||0), initialTop: parseFloat(t.style.top||0) }; t.setPointerCapture(e.pointerId); t.style.zIndex = 1000; 
+        });
         document.addEventListener('pointermove', e => { if(!draggedItem) return; draggedItem.el.style.left = draggedItem.initialLeft + (e.clientX - draggedItem.startX) + 'px'; draggedItem.el.style.top = draggedItem.initialTop + (e.clientY - draggedItem.startY) + 'px'; });
         document.addEventListener('pointerup', e => {
             if(!draggedItem) return; const el = draggedItem.el; el.style.zIndex = ''; el.releasePointerCapture(e.pointerId); const rT = Date.now() - dragStartTime;
@@ -1422,7 +1540,7 @@ exportJSON() {
                     if(sessionAnalytics && pid && sessionAnalytics.pairs[pid]) { sessionAnalytics.pairs[pid].distractorErr++; sessionAnalytics.pairs[pid].mistakes++; }
                     distractorMistakes.push({ drag: el.innerHTML, drop: drop.innerHTML });
                     comboCount = 0; updateCombo();
-                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; }
+                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; loseHeart(); }
                     if(navigator.vibrate) navigator.vibrate(200);
                     showFloat('-' + actualPenalty + ' 🎭', e.clientX, e.clientY-50, 'error');
                     el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); returnItem(el);
@@ -1446,7 +1564,7 @@ exportJSON() {
                 } else {
                     if(sessionAnalytics && sessionAnalytics.pairs[pid]) sessionAnalytics.pairs[pid].mistakes++;
                     mistakes.add(el.dataset.pairId); comboCount = 0; updateCombo();
-                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; }
+                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; loseHeart(); }
                     showFloat('-' + actualPenalty, e.clientX, e.clientY-50, 'error');
                     if(navigator.vibrate) navigator.vibrate(200);
                     el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); returnItem(el);
@@ -1462,7 +1580,7 @@ exportJSON() {
                 consecutiveMistakes++;
                 if (consecutiveMistakes >= state.settings.adaptiveThreshold && !isAdaptiveActive) {
                     isAdaptiveActive = true; canvas.classList.add('adaptive-active'); timeLeft += 15; document.getElementById('timer').textContent = timeLeft;
-                    showToast(i18n.adaptive_msg);
+                    showToast(i18n.adaptive_msg || 'Support mode activated!');
                 }
             }
         }
@@ -1494,24 +1612,6 @@ exportJSON() {
             setTimeout(() => el.style.transition = 'transform 0.1s', 400); 
         }
         function showFloat(txt, x, y, type) { const f = document.createElement('div'); f.className = \`floating-score \${type}\`; f.textContent = txt; f.style.left = x + 'px'; f.style.top = y + 'px'; canvas.appendChild(f); setTimeout(() => f.remove(), type==='context-example' ? 3500 : 1200); }
-
-        function spinWheel() {
-            if(activePairs.length === 0) return;
-            const anim = document.getElementById('wheel-spin-anim'); anim.style.transition = 'none'; anim.style.transform = 'rotate(0deg)';
-            setTimeout(() => { anim.style.transition = 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)'; anim.style.transform = 'rotate(' + (360 * 5 + Math.random() * 360) + 'deg)'; }, 50);
-            setTimeout(() => {
-                const p = activePairs[Math.floor(Math.random()*activePairs.length)];
-                const txt = p.item2.content.replace(/<[^>]+>/g,'').trim() || p.item1.content.replace(/<[^>]+>/g,'').trim();
-                document.getElementById('wheel-result-txt').innerHTML = state.settings.wheelShow ? \`\${p.item1.content} = \${p.item2.content}\` : p.item1.content;
-                let prompt = "";
-                if(state.settings.wheelTask === 'say_word') prompt = "Say the word loudly!";
-                if(state.settings.wheelTask === 'say_sentence') prompt = "Make a sentence with it!";
-                if(state.settings.wheelTask === 'translate') prompt = "Translate it!";
-                if(state.settings.wheelTask === 'explain') prompt = "Explain it in English!";
-                document.getElementById('wheel-task-txt').textContent = prompt;
-                if(state.settings.wheelSpeak && txt) { const utter = new SpeechSynthesisUtterance(txt); if(state.settings.speechLang && state.settings.speechLang !== 'auto') utter.lang = state.settings.speechLang; speechSynthesis.speak(utter); }
-            }, 3000);
-        }
 
         function endGame(isWin) {
             clearInterval(timerInterval); bgAudio.pause();
@@ -1556,6 +1656,7 @@ exportJSON() {
                     const i2 = m.drop.includes('<img') ? m.drop : \`<span>\${m.drop}</span>\`;
                     mList.innerHTML += \`<div class="mistake-card">\${i1} <span class="mistake-arrow">➔ 🎭</span> \${i2}</div>\`;
                 });
+                updateSpacedHistory();
             } else mCont.style.display = 'none';
 
             if (sessionAnalytics) {
