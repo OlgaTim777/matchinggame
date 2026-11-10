@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Game Builder - EdTech PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* ================= CSS СТИЛИ (Милый мультяшный дизайн) ================= */
+        :root {
+            --bg-color: #f0f8ff; --panel-bg: #ffffff; --border-color: #d1d8e0;
+            --primary: #ff7675; --primary-hover: #d63031; --secondary: #00cec9; --accent: #fdcb6e; --error: #ff4757;
+            --item-font: 'Nunito', sans-serif; --item-color: #2d3436; --item-bg: #ffffff; --item-font-size: 16px;
+        }
+
+        body { margin: 0; font-family: 'Nunito', sans-serif; background: var(--bg-color); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .app-header { background: #ffffff; text-align: center; padding: 15px 20px; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.05); z-index: 10; position: relative; }
+        .app-header h1 { margin: 0; font-size: 28px; font-weight: 900; color: #2d3436; text-transform: uppercase; letter-spacing: 1px; }
+        .app-author { margin-top: 5px; font-size: 15px; font-weight: 700; color: #636e72; }
+        .app-author a { color: var(--primary); text-decoration: none; border-bottom: 2px dashed var(--primary); transition: color 0.2s, border-color 0.2s; }
+        .app-author a:hover { color: var(--primary-hover); border-color: var(--primary-hover); }
+        
+        .lang-switch { position: absolute; right: 20px; top: 20px; display: flex; gap: 5px; }
+        .lang-btn { background: #f1f2f6; border: 2px solid #dfe4ea; border-radius: 8px; cursor: pointer; font-weight: bold; padding: 5px 10px; font-family: 'Nunito'; color: #2f3542; transition: 0.2s; }
+        .lang-btn.active { background: var(--accent); border-color: #e1b12c; color: #2d3436; }
+
+        .editor-layout { display: flex; flex: 1; overflow: hidden; }
+        .panel { width: 370px; background: var(--panel-bg); padding: 20px; border-right: 3px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; box-sizing: border-box;}
+        .right-panel { border-right: none; border-left: 3px solid var(--border-color); }
+        .canvas-wrapper { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; position: relative;}
+        .panel h2 { margin-top: 0; font-weight: 800; color: #2d3436; font-size: 20px; }
+
+        .canvas-header { height: 40px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: #2d3436; }
+        .game-canvas { flex: 1; background: #fff; border: 4px dashed #b2bec3; border-radius: 20px; position: relative; overflow: hidden; box-shadow: inset 0 4px 6px rgba(0,0,0,0.02); transition: border-color 0.3s, box-shadow 0.3s; }
+        .game-canvas.edit-mode { border-color: #74b9ff; background: #eef7ff; }
+        .game-canvas.adaptive-active { border-color: var(--accent) !important; box-shadow: inset 0 0 20px rgba(253, 203, 110, 0.3); }
+
+        .copyright-notice { text-align: center; font-size: 13px; color: #b2bec3; font-weight: 700; margin-top: 15px; letter-spacing: 0.5px; }
+
+        .game-item { position: absolute; padding: 12px 24px; border: 3px solid var(--primary); border-radius: 12px; cursor: grab; user-select: none; touch-action: none; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 4px 0 rgba(0,0,0,0.1); transition: transform 0.1s, opacity 0.5s; text-align: center; font-family: var(--item-font); color: var(--item-color); background: var(--item-bg); font-size: var(--item-font-size); }
+        .game-item img { max-width: 80px; max-height: 80px; object-fit: contain; pointer-events: none; border-radius: 8px; }
+        .game-item:active { transform: scale(1.05) translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0.1); z-index: 100; cursor: grabbing; }
+        .game-item.matched { opacity: 0; pointer-events: none; }
+
+        .game-item.distractor { border: 3px dashed #e17055; }
+        .game-item.distractor::after { content: "?"; position: absolute; top: -10px; right: -10px; background: #e17055; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 14px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; font-family: 'Nunito', sans-serif; }
+
+        .hint-cloud { position: absolute; bottom: 115%; left: 50%; transform: translateX(-50%); background: white; border: 2px solid var(--secondary); border-radius: 10px; padding: 6px 12px; font-size: 13px; font-weight: 800; color: #2d3436; box-shadow: 0 4px 10px rgba(0,0,0,0.15); white-space: nowrap; pointer-events: none; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 105; }
+        .hint-cloud::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: var(--secondary) transparent transparent transparent; }
+        @keyframes popIn { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+
+        .shake { animation: shakeAnim 0.4s cubic-bezier(.36,.07,.19,.97) both; } @keyframes shakeAnim { 10%, 90% { transform: translateX(-3px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+        .flash { animation: flashAnim 0.5s ease-out; } @keyframes flashAnim { 0% { background-color: var(--primary); color: white; box-shadow: 0 0 20px var(--primary); transform: scale(1.1); } 100% { background-color: var(--item-bg); box-shadow: 0 4px 0 rgba(0,0,0,0.1); transform: scale(1); } }
+
+        label { display: flex; flex-direction: column; font-size: 14px; gap: 5px; color: #636e72; font-weight: 700;}
+        input[type="number"], input[type="text"], select, textarea { padding: 10px; border: 2px solid #dfe6e9; border-radius: 10px; font-family: inherit; font-weight: 600; color: #2d3436; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--secondary); }
+        input[type="file"] { font-size: 12px; width: 100%; max-width: 100%; box-sizing: border-box; font-family: 'Nunito', sans-serif;}
+        input[type="color"] { width: 100%; height: 40px; border: 2px solid #dfe6e9; border-radius: 10px; cursor: pointer; padding: 2px; }
+        input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); margin: 0; }
+        
+        button { padding: 12px 15px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; font-family: 'Nunito', sans-serif; font-size: 14px; box-shadow: 0 4px 0 #d63031; transition: all 0.1s; letter-spacing: 0.5px; }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #d63031; }
+        .btn-secondary { background: var(--secondary); box-shadow: 0 4px 0 #01a3a4; } .btn-secondary:active { box-shadow: 0 0 0 #01a3a4; }
+        .btn-gold { background: var(--accent); color: #2d3436; box-shadow: 0 4px 0 #e1b12c; } .btn-gold:active { box-shadow: 0 0 0 #e1b12c; }
+        .btn-error { background: var(--error); box-shadow: 0 4px 0 #c23616; } .btn-error:active { box-shadow: 0 0 0 #c23616; }
+
+        .settings-section { border: 2px solid var(--accent); background: #fffdf5; padding: 15px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .settings-section h3 { margin: 0 0 5px 0; font-size: 16px; color: #d35400; font-weight: 800; border-bottom: 2px dashed #fdcb6e; padding-bottom: 8px;}
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .template-list-box { margin-top: 5px; background: #fff; border: 2px solid #dfe6e9; border-radius: 10px; max-height: 160px; overflow-y: auto; list-style: none; padding: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .template-list-box li { padding: 12px; border-bottom: 1px solid #dfe6e9; font-size: 14px; font-weight: 800; color: #2d3436; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .template-list-box li:last-child { border-bottom: none; }
+        .template-list-box li:hover { background: #eef7ff; }
+        .template-list-box li.active { background: var(--primary); color: #fff; }
+        .template-list-empty { padding: 15px; font-size: 13px; color: #b2bec3; text-align: center; font-style: italic; font-weight: 700;}
+
+        .floating-score { position: absolute; font-size: 26px; font-weight: 900; pointer-events: none; z-index: 1000; animation: floatUpAndFade 1.2s ease-out forwards; }
+        .floating-score.success { color: var(--primary); text-shadow: 0 2px 4px rgba(0,0,0,0.2); } .floating-score.error { color: var(--error); }
+        .floating-score.combo-3 { color: #FFB300; text-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 32px; } .floating-score.combo-5 { color: #9C27B0; text-shadow: 0 0 15px #E1BEE7; font-size: 40px; }
+        .floating-score.context-example { background: #f1f2f6; padding: 8px 12px; border-radius: 8px; border: 1px solid #dfe6e9; font-size: 14px; font-style: italic; color: #636e72; font-weight: 700; text-shadow: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: contextFade 3.5s forwards; max-width: 250px; text-align: center; line-height: 1.3; }
+
+        @keyframes floatUpAndFade { 0% { opacity: 1; transform: translateY(0) scale(1); } 50% { transform: translateY(-40px) scale(1.2); } 100% { opacity: 0; transform: translateY(-80px) scale(1); } }
+        @keyframes contextFade { 0% { opacity: 0; transform: translateY(15px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-15px); } }
+        
+        .time-warning { color: var(--error); animation: pulse 1s infinite; } @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .adaptive-toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #2d3436; padding: 12px 25px; border-radius: 20px; font-weight: 800; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); z-index: 1500; pointer-events: none; animation: floatDownFade 3s forwards; }
+        @keyframes floatDownFade { 0% { top: -50px; opacity: 0; } 10% { top: 20px; opacity: 1; } 90% { top: 20px; opacity: 1; } 100% { top: -50px; opacity: 0; } }
+
+        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 248, 255, 0.95); backdrop-filter: blur(5px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; display: none; text-align: center; padding: 20px; box-sizing: border-box; border-radius: 20px;}
+        .overlay-screen.active { display: flex; }
+        .overlay-screen h1 { color: var(--primary); font-size: 46px; margin-bottom: 10px; font-weight: 900; text-shadow: 0 3px 0 #ffeaa7;}
+        .overlay-screen p { font-size: 20px; color: #2d3436; max-width: 600px; margin-bottom: 30px; font-weight: 700;}
+        .overlay-screen input[type="text"] { font-size: 18px; padding: 12px; width: 280px; text-align: center; margin-bottom: 20px; border-radius: 15px;}
+        .overlay-screen button { font-size: 22px; padding: 15px 40px; border-radius: 50px; text-transform: uppercase;}
+        
+        .mistakes-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-height: 250px; overflow-y: auto; width: 100%; max-width: 700px; padding: 10px; margin: 15px 0;}
+        .mistake-card { background: #ffffff; border: 2px solid #ff7675; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; font-weight: 800; color: #2d3436; box-shadow: 0 4px 0 rgba(255,118,117,0.2); font-size: 15px;}
+        .mistake-arrow { color: #ff7675; font-size: 18px; } .mistake-card img { max-width: 40px; max-height: 40px; border-radius: 6px; }
+
+        .teacher-code-box { background: #eef7ff; padding: 10px 20px; border-radius: 12px; border: 2px dashed #0984e3; margin-top: 15px; font-weight: 800; color: #0984e3; }
+        .mode-switch label { flex-direction: row; align-items: center; cursor: pointer; background: #f8f9fa; padding: 10px; border-radius: 10px; border: 2px solid transparent; transition: all 0.2s;}
+        .mode-switch label:hover { background: #eef7ff; border-color: #74b9ff; }
+        
+        .bulk-upload-area { position: relative; }
+        .bulk-upload-area textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+        .bulk-upload-area .img-btn { display: none; background: #dfe6e9; color: #2d3436; text-align: center; padding: 15px; border-radius: 10px; border: 2px dashed #b2bec3; cursor: pointer; font-weight: 700; transition: 0.2s; }
+        .bulk-upload-area .img-btn:hover { background: #b2bec3; }
+        .file-count { font-size: 12px; color: var(--primary); font-weight: 800; margin-top: 5px; }
+
+        /* ========= СТИЛИ ДЛЯ НОВЫХ ФУНКЦИЙ (Этапы 3, 4, 5) ========= */
+        .face-down { background: var(--secondary) !important; color: transparent !important; }
+        .face-down img { opacity: 0; }
+        .heart { color: var(--error); font-size: 24px; margin: 0 2px; }
+        .heart.broken { color: #b2bec3; opacity: 0.5; }
+        .heart.warning { animation: pulse 0.5s infinite; }
+        .ach-badge { display: inline-block; padding: 5px; background: #eee; border-radius: 5px; opacity: 0.4; filter: grayscale(100%); margin: 2px; position: relative; cursor: help; }
+        .ach-badge.unlocked { opacity: 1; filter: none; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .theme-btn { padding: 5px 10px; margin: 2px; border: 2px solid transparent; cursor: pointer; border-radius: 8px; font-weight: bold; background: #f1f2f6; color: #2d3436; }
+        .theme-btn.active { border-color: var(--primary); background: var(--accent); }
+        .streak-fires { filter: grayscale(100%); opacity: 0.3; }
+        .streak-fires.active-1, .streak-fires.active-2, .streak-fires.active-3 { filter: none; opacity: 1; text-shadow: 0 0 10px #ff9f43; }
+        .chest-icon { font-size: 40px; cursor: pointer; transition: transform 0.2s; text-align: center; }
+        .chest-icon.opening { animation: shakeAnim 0.5s infinite; }
+        .chest-icon.opened { opacity: 0.5; cursor: default; }
+        
+        .duel-ui { display: flex; gap: 15px; background: #f8f9fa; padding: 5px 15px; border-radius: 10px; } 
+        .duel-player { font-weight: bold; opacity: 0.5; padding: 5px 10px; border-radius: 5px; color: #2d3436; transition: 0.3s; } 
+        .active-turn { opacity: 1; background: var(--primary); color: white; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; font-weight: bold; color: #2d3436;} 
+        .leaderboard-item.highlight { background: #fffdf5; color: var(--primary); border-radius: 5px;}
+        .analytics-summary { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: left; color: #2d3436; font-size: 14px; width: 100%; box-sizing: border-box;}
+        
+        .wheel-modal { background: white; padding: 30px; border-radius: 20px; text-align: center; } 
+        .wheel-spin-anim { display:inline-block; transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        .creator-modal { width: 90%; max-width: 600px; background: white; padding: 20px; border-radius: 20px; max-height: 90vh; overflow-y: auto;}
+        .share-code-area, .import-code-area { width: 100%; height: 60px; font-family: monospace; margin: 10px 0; padding: 10px; border: 2px solid #dfe6e9; border-radius: 10px; box-sizing: border-box; }
+        .new-ach-list { display: flex; gap: 10px; justify-content: center; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>Matching Game Builder</h1>
+        <div class="app-author">
+            <span data-i18n="author_text">автор Ольга Тимофеева / </span><a href="https://vk.ru/club221025676" target="_blank" rel="noopener noreferrer" data-i18n="author_link">Да! Доступный Английский</a>
+        </div>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLanguage('ru')">RU</button>
+            <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+        </div>
+    </header>
+
+    <div class="editor-layout">
+        <aside class="panel left-panel">
+            <h2 data-i18n="settings_title">Настройки (PRO)</h2>
+            
+            <div class="settings-section">
+                <h3 data-i18n="tpl_title">💾 Шаблоны игр</h3>
+                <select id="template-select" style="display:none;"><option value="" data-i18n="tpl_current">-- Текущая сессия --</option></select>
+                <ul class="template-list-box" id="visible-template-list"></ul>
+                <div class="row-2" style="margin-top: 5px;">
+                    <button class="btn-secondary" id="tpl-save" data-i18n="tpl_save">Сохранить</button>
+                    <button class="btn-gold" id="tpl-rename" data-i18n="tpl_rename">Переименовать</button>
+                </div>
+                <button class="btn-error" id="tpl-delete" data-i18n="tpl_delete">🗑️ Удалить шаблон</button>
+            </div>
+
+            <div class="settings-section">
+                <h3>🎮 Тип игры</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="radio" name="set-gamemode" value="match" checked> Match (Классика)</label>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="radio" name="set-gamemode" value="listen"> Listen (На слух)</label>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="radio" name="set-gamemode" value="memory"> Memory (Память)</label>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="radio" name="set-gamemode" value="speed"> Speed (На скорость)</label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="bulk_title">➕ Загрузка пар (до 50)</h3>
+                <label><span data-i18n="bulk_item1">Элемент 1:</span>
+                    <select id="bulk-type-1" onchange="toggleBulkUI('1')">
+                        <option value="text" data-i18n="bulk_text">Текст (в столбик)</option>
+                        <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
+                    </select>
+                    <div class="bulk-upload-area">
+                        <textarea id="bulk-text-1" rows="2" placeholder="Слово 1\nСлово 2..."></textarea>
+                        <label class="img-btn" id="bulk-img-btn-1">🖼️ Выбрать картинки<input type="file" id="bulk-img-1" accept="image/*" multiple style="display:none;" onchange="updateFileCount('1')"></label>
+                        <div class="file-count" id="count-1"></div>
+                    </div>
+                </label>
+                <label><span data-i18n="bulk_item2">Элемент 2:</span>
+                    <select id="bulk-type-2" onchange="toggleBulkUI('2')">
+                        <option value="text" data-i18n="bulk_text">Текст (в столбик)</option>
+                        <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
+                    </select>
+                    <div class="bulk-upload-area">
+                        <textarea id="bulk-text-2" rows="2" placeholder="Word 1\nWord 2..."></textarea>
+                        <label class="img-btn" id="bulk-img-btn-2">🖼️ Выбрать картинки<input type="file" id="bulk-img-2" accept="image/*" multiple style="display:none;" onchange="updateFileCount('2')"></label>
+                        <div class="file-count" id="count-2"></div>
+                    </div>
+                </label>
+                <label><span data-i18n="examples_title" style="color: #0984e3;">💬 Примеры (опционально):</span><textarea id="bulk-examples" rows="2" placeholder="I like apples.\nShe reads books."></textarea></label>
+                <div class="row-2" style="margin-top: 5px;"><button class="btn-secondary" id="bulk-add-btn" data-i18n="bulk_add">Сгенерировать</button><button class="btn-error" id="clear-canvas-btn" data-i18n="bulk_clear">Очистить поле</button></div>
+            </div>
+
+            <div class="settings-section" style="border-color: #e17055;">
+                <h3 data-i18n="dist_title" style="color: #e17055; border-bottom-color: #fab1a0;">🎭 Лишние элементы (дистракторы)</h3>
+                <label><span data-i18n="dist_item">Тип:</span>
+                    <select id="bulk-type-dist" onchange="toggleBulkUI('dist')">
+                        <option value="text" data-i18n="bulk_text">Текст (в столбик)</option>
+                        <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
+                    </select>
+                    <div class="bulk-upload-area">
+                        <textarea id="bulk-text-dist" rows="2" placeholder="Ловушка 1\nЛовушка 2..."></textarea>
+                        <label class="img-btn" id="bulk-img-btn-dist">🖼️ Выбрать картинки<input type="file" id="bulk-img-dist" accept="image/*" multiple style="display:none;" onchange="updateFileCount('dist')"></label>
+                        <div class="file-count" id="count-dist"></div>
+                    </div>
+                </label>
+                <div class="row-2"><button class="btn-secondary" id="dist-add-btn" style="background: #e17055; box-shadow: 0 4px 0 #d63031;" data-i18n="dist_add">➕ Добавить</button><button class="btn-error" id="dist-clear-btn" data-i18n="dist_clear">🗑️ Очистить</button></div>
+                <div style="font-size: 13px; font-weight: 800; color: #2d3436; margin-top: 5px;"><span data-i18n="dist_count">✅ Добавлено дистракторов:</span> <span id="dist-total">0</span></div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="rules_title">Правила</h3>
+                <div class="row-2"><label><span data-i18n="rules_pen">Штраф:</span> <input type="number" id="set-penalty"></label><label><span data-i18n="rules_rew">Награда:</span> <input type="number" id="set-reward"></label></div>
+                <label><span data-i18n="rules_time">Время (сек):</span> <input type="number" id="set-time"></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="hints_title" style="color: #0984e3; border-bottom-color: #74b9ff;">💡 Подсказки</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-hints"> <span data-i18n="hints_enable">Включить подсказки</span></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="adaptive_title" style="color: #e1b12c; border-bottom-color: #ffeaa7;">🌟 Адаптивность</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-adaptive"> <span data-i18n="adaptive_enable">Адаптивный режим</span></label>
+                <label id="adaptive-thresh-container" style="display:none; margin-top:5px;"><span data-i18n="adaptive_threshold">Порог ошибок:</span><input type="number" id="set-adaptive-thresh" value="3" min="1" max="10"></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="confetti_title" style="color: #9b59b6; border-bottom-color: #d2b4de;">🎊 Эффекты</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-confetti" checked> <span data-i18n="confetti_enable">Конфетти при победе</span></label>
+            </div>
+
+            <div class="settings-section">
+                <h3>🔄 Обучение</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-spaced"> Spaced Repetition</label>
+            </div>
+
+            <div class="settings-section">
+                <h3>💖 Жизни</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-hearts"> Включить жизни</label>
+                <label id="hearts-max-container" style="display:none; margin-top:5px;">Макс. жизней: <input type="number" id="set-hearts-max" value="3" min="1" max="10"></label>
+            </div>
+
+            <div class="settings-section">
+                <h3>🏅 Достижения</h3>
+                <div id="ach-grid-ui" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+            </div>
+
+            <div class="settings-section">
+                <h3>🎨 Тема</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                    <button class="theme-btn active" data-theme="default">Стандарт</button><button class="theme-btn" data-theme="space">Космос</button>
+                    <button class="theme-btn" data-theme="detective">Детектив</button><button class="theme-btn" data-theme="magic">Магия</button><button class="theme-btn" data-theme="ocean">Океан</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>🔥 Streak</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-weight:bold; color:#2d3436;">
+                    <div>Серия: <span id="streak-cur-ui" style="color:var(--primary);">0</span> (Макс: <span id="streak-best-ui">0</span>)</div>
+                    <div id="streak-fires-ui" class="streak-fires">🔥🔥🔥</div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="duel_title">👥 Дуэль</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-duel"> <span data-i18n="duel_enable">Включить режим дуэли</span></label>
+                <div id="duel-names" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
+                    <input type="text" id="set-p1" placeholder="Игрок 1" data-i18n-ph="duel_p1">
+                    <input type="text" id="set-p2" placeholder="Игрок 2" data-i18n-ph="duel_p2">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="wheel_title">🎡 Колесо фортуны</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-wheel"> <span data-i18n="wheel_enable">Включить колесо</span></label>
+                <div id="wheel-opts" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
+                    <label><span data-i18n="wheel_task">Тип задания:</span>
+                    <select id="set-wheel-task">
+                        <option value="say_word">Say the word</option>
+                        <option value="say_sentence">Make a sentence</option>
+                        <option value="translate">Translate</option>
+                        <option value="explain">Explain in English</option>
+                    </select></label>
+                    <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-wheel-speak" checked> <span data-i18n="wheel_speak">Озвучивать слово</span></label>
+                    <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-wheel-show"> <span data-i18n="wheel_show_pair">Показывать пару</span></label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="creator_title">🧑‍🏫 Ученик-создатель</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-creator"> <span data-i18n="creator_enable">Разрешить создание</span></label>
+                <label id="creator-max-cont" style="display:none; margin-top:5px;"><span data-i18n="creator_max">Макс. пар:</span> <input type="number" id="set-creator-max" value="10" min="1" max="20"></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="leader_title">🏆 Рейтинг</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-leader"> <span data-i18n="leader_enable">Включить рейтинг</span></label>
+                <div class="row-2" style="margin-top:5px;"><button id="btn-clear-leader" class="btn-error" data-i18n="leader_clear">Очистить</button><button id="btn-dl-leader" class="btn-secondary" data-i18n="leader_csv">Скачать CSV</button></div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="analytics_title">📊 Аналитика</h3>
+                <button id="btn-show-analytics" class="btn-secondary" style="margin-bottom:5px;" data-i18n="analytics_last">Показать аналитику</button>
+                <div class="row-2"><button id="btn-dl-analytics-json" data-i18n="analytics_json">JSON</button><button id="btn-dl-analytics-csv" data-i18n="analytics_csv">CSV</button></div>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="share_title">📱 Обмен игрой</h3>
+                <button id="btn-get-code" class="btn-gold" data-i18n="share_code">Сгенерировать код</button>
+                <textarea id="share-code-area" class="share-code-area" readonly></textarea>
+                <button id="btn-copy-code" class="btn-secondary" data-i18n="share_copy">Копировать</button>
+                <hr style="border:1px solid #dfe6e9; width:100%;">
+                <textarea id="import-code-area" class="import-code-area" data-i18n-ph="share_placeholder" placeholder="Вставьте код MGB5..."></textarea>
+                <button id="btn-import-code" class="btn-secondary" data-i18n="share_import">Загрузить из кода</button>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="innov_title">Инновации</h3>
+                <label style="flex-direction: row; align-items: center; cursor: pointer;"><input type="checkbox" id="set-speech"> <span data-i18n="innov_speech">🗣️ Озвучивать слова</span></label>
+                <label id="speech-lang-container" style="display:none; margin-top:5px;"><span data-i18n="innov_voice">Акцент:</span><select id="set-speech-lang"><option value="auto" data-i18n="voice_auto">Авто (Браузер)</option><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option></select></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="texts_title">Тексты Экранов</h3>
+                <label><span data-i18n="text_h1">Заголовок:</span> <input type="text" id="set-start-title"></label>
+                <label><span data-i18n="text_desc">Слоган:</span> <input type="text" id="set-start-slogan"></label>
+            </div>
+
+            <div class="settings-section">
+                <h3 data-i18n="vis_title">Внешний вид и Звуки</h3>
+                <label><span data-i18n="vis_font">Шрифт карточек:</span><select id="set-font"><option value="'Nunito', sans-serif">Nunito</option><option value="'Segoe UI', sans-serif">Segoe UI</option><option value="'Comic Sans MS', cursive">Comic Sans</option><option value="'Caveat', cursive">Caveat</option></select></label>
+                <label style="flex-direction: row; align-items: center; cursor: pointer; margin: 5px 0;"><input type="checkbox" id="set-bg-transparent"> <span data-i18n="vis_bg_transp">Прозрачный фон карточек</span></label>
+                <div class="row-2"><label><span data-i18n="vis_col">Текст:</span> <input type="color" id="set-color" value="#2d3436"></label><label><span data-i18n="vis_bg">Цвет фона:</span> <input type="color" id="set-bg" value="#ffffff"></label></div>
+                <label style="margin-top: 10px;"><span data-i18n="vis_audio">Фон (MP3):</span> <input type="file" id="set-music" accept="audio/*"></label>
+                <label style="margin-top: 10px;"><div style="display:flex; justify-content:space-between; align-items:center;"><span data-i18n="vis_bg_img">Фон (Картинка):</span><span id="clear-bg-img" style="cursor:pointer; font-size:12px; color:var(--error);" title="Удалить фон">❌</span></div><input type="file" id="set-bg-img" accept="image/*"></label>
+            </div>
+            
+            <div class="settings-section">
+                <h3 data-i18n="teach_title">Декодер Кода (Для учителя)</h3>
+                <div style="display:flex; gap:5px;"><input type="text" id="check-code-input" placeholder="A064" style="width: 100px; text-transform: uppercase;"><button class="btn-secondary" id="check-code-btn" style="flex:1;" data-i18n="teach_btn">Проверить</button></div>
+                <div id="check-code-result" style="font-size: 13px; font-weight: 800; color: #2d3436; margin-top: 5px;"></div>
+            </div>
+        </aside>
+
+        <main class="canvas-wrapper">
+            <header class="canvas-header">
+                <div id="game-stats" style="visibility: hidden; display: flex; gap: 20px; align-items: center; width:100%;">
+                    
+                    <div id="duel-ui" class="duel-ui" style="display:none; width:auto; margin:0; gap:10px;">
+                        <div id="duel-p1-ui" class="duel-player"><span id="duel-n1">Игрок 1</span>: <span id="duel-s1">0</span></div>
+                        <div id="duel-p2-ui" class="duel-player"><span id="duel-n2">Игрок 2</span>: <span id="duel-s2">0</span></div>
+                        <div id="duel-turn-ui" style="font-weight:bold; color:var(--primary); align-self:center; font-size:14px;"></div>
+                    </div>
+                    
+                    <div id="single-score-ui" style="display: flex; gap: 20px; align-items: center;">
+                        <div><span data-i18n="ui_score">Очки:</span> <span id="score" style="color: var(--primary); font-size: 20px;">0</span></div>
+                    </div>
+                    
+                    <div><span data-i18n="ui_time">Время:</span> <span id="timer" style="color: var(--secondary); font-size: 20px;">60</span></div>
+                    
+                    <div id="hearts-container" style="display:none; gap:2px;"></div>
+                    <div id="memory-moves-container" style="display:none; font-weight:bold; color:#636e72;">Ходы: <span id="memory-moves-ui" style="color:var(--primary);">0</span></div>
+                    <div id="combo-display" style="color: #FFB300; font-weight: 900; font-size: 20px; display: none; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Combo x<span id="combo-multiplier">2</span>!</div>
+                </div>
+                <div id="mode-indicator" data-i18n="ui_mode_edit">Режим: Редактирование</div>
+            </header>
+            
+            <div id="game-canvas" class="game-canvas edit-mode"></div>
+            <div class="copyright-notice" data-i18n="copyright">Только для личного использования. Продажа и передача третьим лицам запрещена</div>
+            
+            <div id="start-screen" class="overlay-screen">
+                <h1 id="screen-start-title"></h1><p id="screen-start-slogan"></p>
+                <input type="text" id="student-name-input" data-i18n-ph="ui_name_ph" placeholder="Введи свое имя...">
+                <button onclick="document.querySelector('input[value=\'play\']').click()" data-i18n="ui_start">Начать Игру 🚀</button>
+                <button id="btn-open-creator" class="btn-secondary" style="margin-top: 15px; display:none;" data-i18n="creator_btn">Создать свою игру</button>
+            </div>
+
+            <div id="feedback-screen" class="overlay-screen">
+                <h1 id="feedback-title" data-i18n="ui_res">Результаты</h1>
+                
+                <div id="score-container">
+                    <h2><span data-i18n="ui_score_res">Твой счет:</span> <span id="feedback-score" style="color: var(--primary); font-size: 32px;">0</span></h2>
+                    <h3 style="margin:0;"><span data-i18n="ui_acc">Точность:</span> <span id="feedback-accuracy" style="color: var(--secondary);">100</span>%</h3>
+                </div>
+
+                <div id="duel-fb-container" style="display:none; text-align:center; margin-bottom:15px; background:#fffdf5; padding:15px; border-radius:12px; border:2px solid var(--accent); width:80%;">
+                    <h2 id="duel-fb-winner" style="color:var(--primary); margin:0 0 10px 0;"></h2>
+                    <div style="display:flex; justify-content:space-around; font-size:18px; font-weight:bold; color:#2d3436;">
+                        <div><span id="duel-fb-n1"></span>: <span id="duel-fb-s1" style="color:var(--primary);">0</span></div>
+                        <div><span id="duel-fb-n2"></span>: <span id="duel-fb-s2" style="color:var(--secondary);">0</span></div>
+                    </div>
+                </div>
+                
+                <div id="chest-ui" style="display:none; margin: 15px 0; display:flex; flex-direction:column; align-items:center;">
+                    <div id="chest-btn" class="chest-icon">🎁</div><button id="open-chest-btn" class="btn-gold" style="margin-top:10px;">Открыть сундук!</button><div id="chest-result" style="font-weight:bold; color:var(--accent); font-size:20px; margin-top:10px; min-height:24px;"></div>
+                </div>
+                
+                <div id="new-ach-container" style="display:none; margin-top:10px; width:100%; text-align:center;">
+                    <h3 style="color:var(--accent); margin:0 0 10px 0;">Новые достижения!</h3><div id="new-ach-list" class="new-ach-list"></div>
+                </div>
+
+                <div id="tc-container" class="teacher-code-box"><span data-i18n="ui_tcode">Код учителя:</span> <span id="teacher-code-display" style="letter-spacing: 2px;">----</span></div>
+                
+                <div id="spaced-msg-container" style="display:none; color:var(--primary); font-weight:bold; margin-top:10px;">
+                    Слов на повторение: <span id="spaced-count">0</span>
+                </div>
+                <div id="streak-msg-container" style="display:none; color:#ff9f43; font-weight:bold; margin-top:5px;"></div>
+
+                <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; width:100%; max-width:800px;">
+                    <div id="leaderboard-fb-container" style="display:none; margin-top:15px; flex:1; min-width:250px; text-align:left; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+                        <h3 style="margin:0 0 10px 0; color:#2d3436; border-bottom:2px solid #dfe6e9; padding-bottom:5px;" data-i18n="leader_top">Топ результатов</h3>
+                        <div id="leaderboard-list"></div>
+                    </div>
+                    <div id="analytics-fb-container" style="display:none; margin-top:15px; flex:1; min-width:250px;">
+                        <div id="analytics-summary" class="analytics-summary"></div>
+                    </div>
+                </div>
+
+                <div id="mistakes-container" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+                    <div class="mistakes-grid" id="feedback-mistakes"></div>
+                    <button class="btn-secondary" id="retry-mistakes-btn" style="margin-top: 10px; font-size: 16px; padding: 12px 25px;" data-i18n="ui_retry">🔄 Переиграть ошибки</button>
+                </div>
+                
+                <button id="btn-open-wheel" class="btn-secondary" style="margin-top:15px; display:none;" data-i18n="wheel_btn">🎡 Колесо Speaking</button>
+
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button onclick="document.querySelector('input[value=\'edit\']').click()" data-i18n="ui_back">В редактор</button>
+                    <button class="btn-gold" id="download-cert-btn" data-i18n="ui_cert">📜 Сертификат</button>
+                </div>
+            </div>
+
+            <!-- Модалка колеса фортуны -->
+            <div id="wheel-modal" class="overlay-screen">
+                <div class="wheel-modal">
+                    <h2 style="margin-top:0;" data-i18n="wheel_title">Колесо Фортуны</h2>
+                    <div style="font-size: 80px; margin:20px 0;" id="wheel-spin-anim">🎡</div>
+                    <button id="wheel-spin-btn" class="btn-gold" style="font-size:20px; padding:15px 30px;">Крутить!</button>
+                    <div id="wheel-result-content" style="min-height:80px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <h3 id="wheel-result-txt" style="margin:10px 0; color:var(--primary); font-size:24px;"></h3>
+                        <p id="wheel-task-txt" style="font-weight:bold; font-size:18px; color:#2d3436; margin:0;"></p>
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+                        <button onclick="document.getElementById('wheel-modal').classList.remove('active')" class="btn-secondary" data-i18n="wheel_done">Готово</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модалка Ученика-Создателя -->
+            <div id="creator-modal" class="overlay-screen">
+                <div class="creator-modal">
+                    <h2 style="margin-top:0; color:var(--primary);" data-i18n="creator_title">🧑‍🏫 Ученик-создатель</h2>
+                    <label>Имя ученика: <input type="text" id="cr-name" placeholder="John Doe"></label>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+                        <label>Слова (1-я колонка, в столбик): <textarea id="cr-item1" rows="3"></textarea></label>
+                        <label>Слова (2-я колонка, в столбик): <textarea id="cr-item2" rows="3"></textarea></label>
+                    </div>
+                    <label style="margin-top:10px;">Пример предложения (в столбик, опционально): <textarea id="cr-examples" rows="2"></textarea></label>
+                    <label style="margin-top:10px;">Отвлекающие слова (в столбик, опционально): <textarea id="cr-distractors" rows="2"></textarea></label>
+                    
+                    <div style="display:flex; gap:10px; margin-top:20px; justify-content:center; flex-wrap:wrap;">
+                        <button id="cr-start" class="btn-gold">Сгенерировать и играть!</button>
+                        <button id="cr-dl" class="btn-secondary" data-i18n="creator_download">Скачать JSON</button>
+                        <button id="cr-close" class="btn-error" data-i18n="creator_back">Назад</button>
+                    </div>
+                    <hr style="margin:20px 0; border: 1px solid #dfe6e9;">
+                    <div style="text-align:center;">
+                        <label style="display:inline-flex; align-items:center; cursor:pointer;">
+                            <span data-i18n="creator_import">Загрузить игру ученика</span>:
+                            <input type="file" id="import-student-input" accept=".json" style="display:none;">
+                            <button id="btn-import-student" class="btn-secondary" style="margin-left:10px;" onclick="document.getElementById('import-student-input').click()">Загрузить</button>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+
+        <aside class="panel right-panel">
+            <h2 data-i18n="modes_title">Режим (Экраны)</h2>
+            <div class="mode-switch" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <label><input type="radio" name="mode" value="edit" checked> <span data-i18n="mode_edit">✏️ 1. Редактирование</span></label>
+                <label><input type="radio" name="mode" value="start"> <span data-i18n="mode_start">🏠 2. Стартовая</span></label>
+                <label><input type="radio" name="mode" value="play"> <span data-i18n="mode_play">🎮 3. Игра</span></label>
+                <label><input type="radio" name="mode" value="feedback"> <span data-i18n="mode_fb">🏆 4. Фидбек</span></label>
+            </div>
+            <h2 data-i18n="export_title">Экспорт</h2>
+            <div class="export-actions" style="display: flex; flex-direction: column; gap: 12px;">
+                <button id="import-json-btn" class="btn-secondary" data-i18n="exp_imp">📂 Загрузить JSON</button>
+                <input type="file" id="import-json-input" accept=".json" style="display:none;">
+                <button id="export-json" data-i18n="exp_json">💾 Сохранить JSON</button>
+                <button id="export-html" data-i18n="exp_html">🌐 Скачать HTML (Плеер)</button>
+                <button id="export-iframe" data-i18n="exp_ifr">🔗 Код для Genially</button>
+            </div>
+            <div style="margin-top:20px; font-weight:bold; font-size:18px; text-align:center; background:#fffdf5; padding:15px; border-radius:12px; border:2px dashed var(--accent);">
+                💰 Монеты: <span id="total-coins-ui" style="color:var(--accent); font-size:24px;">0</span>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        function getLS(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e){ return def; } }
+        function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+        const ACH_DEFS = [
+          {id:'first_win', icon:'🌟', hint:'Первая победа'}, {id:'sniper', icon:'🎯', hint:'100% точность'},
+          {id:'lightning', icon:'⚡', hint:'Игра за <30 сек'}, {id:'combo_master', icon:'🔥', hint:'Combo x5'},
+          {id:'trap_catcher', icon:'🎭', hint:'Без ошибок на ловушках'}, {id:'brainiac', icon:'🧠', hint:'Memory пройден'},
+          {id:'audio_ninja', icon:'🎧', hint:'Listen пройден'}, {id:'flawless', icon:'💎', hint:'3 игры без ошибок'},
+          {id:'champion', icon:'👑', hint:'1000+ баллов'}
+        ];
+
+        const THEMES = {
+          default: {bg:'#f0f8ff', panel:'#ffffff', border:'#d1d8e0', primary:'#ff7675', hover:'#d63031', secondary:'#00cec9', accent:'#fdcb6e', error:'#ff4757', text:'#2d3436'},
+          space: {bg:'#1a1a2e', panel:'#16213e', border:'#0f3460', primary:'#00ff88', hover:'#00cc6a', secondary:'#ff00ff', accent:'#00ff88', error:'#ff0055', text:'#ffffff'},
+          detective: {bg:'#f4e4c1', panel:'#e8d5a8', border:'#8b4513', primary:'#8b4513', hover:'#5d2e0c', secondary:'#a0522d', accent:'#d2691e', error:'#8b0000', text:'#3e2723'},
+          magic: {bg:'#2d1b4e', panel:'#3d2b5e', border:'#6c5ce7', primary:'#a29bfe', hover:'#6c5ce7', secondary:'#fdcb6e', accent:'#fdcb6e', error:'#ff4757', text:'#ffffff'},
+          ocean: {bg:'#e0f7fa', panel:'#b2ebf2', border:'#00acc1', primary:'#00acc1', hover:'#00838f', secondary:'#ffeaa7', accent:'#ffeaa7', error:'#ff4757', text:'#2d3436'}
+        };
+
+        function launchConfetti() {
+            const canvas = document.createElement('canvas'); canvas.style.position = 'fixed'; canvas.style.top = '0'; canvas.style.left = '0'; canvas.style.width = '100%'; canvas.style.height = '100%'; canvas.style.pointerEvents = 'none'; canvas.style.zIndex = '9999'; document.body.appendChild(canvas); const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const particles = []; const colors = ['#ff7675', '#00cec9', '#fdcb6e', '#a29bfe'];
+            for(let i=0; i<100; i++) particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, r: Math.random() * 6 + 4, dx: Math.random() * 4 - 2, dy: Math.random() * 3 + 2, color: colors[Math.floor(Math.random() * colors.length)], tilt: Math.random() * 10 });
+            let frame; let start = Date.now();
+            function render() { ctx.clearRect(0,0, canvas.width, canvas.height); let alive = false; particles.forEach(p => { p.y += p.dy; p.x += p.dx; p.tilt += 0.1; if(p.y < canvas.height) alive = true; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.tilt)*10, p.y, p.r, 0, Math.PI*2); ctx.fillStyle = p.color; ctx.fill(); }); if(Date.now() - start < 3000 && alive) frame = requestAnimationFrame(render); else { canvas.remove(); cancelAnimationFrame(frame); } } render();
+        }
+
+        const i18n = {
+            ru: {
+                author_text: "автор Ольга Тимофеева / ", author_link: "Да! Доступный Английский",
+                settings_title: "Настройки (PRO)", tpl_title: "💾 Шаблоны игр", tpl_current: "-- Текущая сессия --", tpl_save: "Сохранить", tpl_rename: "Имя", tpl_delete: "Удалить", tpl_empty: "Нет сохраненных шаблонов",
+                bulk_title: "➕ Загрузка пар (до 50)", bulk_item1: "Элемент 1:", bulk_item2: "Элемент 2:", bulk_text: "Текст (в столбик)", bulk_img: "Картинки (файлы)", bulk_add: "Генерировать", bulk_clear: "Очистить",
+                dist_title: "🎭 Лишние элементы (дистракторы)", dist_item: "Тип:", dist_add: "➕ Добавить", dist_clear: "🗑️ Очистить", dist_count: "✅ Добавлено дистракторов:",
+                hints_title: "💡 Подсказки", hints_enable: "Включить подсказки", examples_title: "💬 Примеры (опционально):",
+                confetti_title: "🎊 Эффекты", confetti_enable: "Конфетти при победе",
+                adaptive_title: "🌟 Адаптивность", adaptive_enable: "Адаптивный режим", adaptive_threshold: "Порог ошибок:", adaptive_msg: "🌟 Режим поддержки активирован!",
+                hint_letter: "Подсказка: начинается на...", hint_translation: "Подсказка: перевод...", hint_answer: "Правильный ответ:",
+                texts_title: "Тексты Экранов", text_h1: "Заголовок:", text_desc: "Слоган:", 
+                innov_title: "Инновации", innov_speech: "🗣️ Озвучивать", innov_voice: "Акцент:", voice_auto: "Авто (Браузер)",
+                teach_title: "Декодер (Для учителя)", teach_btn: "Проверить", 
+                vis_title: "Внешний вид и Звуки", vis_font: "Шрифт:", vis_col: "Текст:", vis_bg: "Цвет фона:", vis_bg_transp: "Прозрачный фон карточек", vis_audio: "Фон (MP3):", vis_bg_img: "Фон (Картинка):",
+                rules_title: "Правила", rules_pen: "Штраф:", rules_rew: "Награда:", rules_time: "Время (сек):",
+                ui_score: "Очки:", ui_time: "Время:", ui_mode_edit: "Режим: Редакт.", copyright: "Только для личного использования. Продажа и передача третьим лицам запрещена",
+                ui_name_ph: "Введи свое имя...", ui_start: "Начать Игру 🚀", ui_res: "Результаты", ui_score_res: "Твой счет:", ui_acc: "Точность:", ui_tcode: "Код учителя:",
+                ui_retry: "🔄 Переиграть ошибки", ui_back: "В редактор", ui_cert: "📜 Сертификат",
+                modes_title: "Режим", mode_edit: "✏️ 1. Редактирование", mode_start: "🏠 2. Стартовая", mode_play: "🎮 3. Игра", mode_fb: "🏆 4. Фидбек",
+                export_title: "Экспорт", exp_imp: "📂 Загрузить JSON", exp_json: "💾 Сохранить JSON", exp_html: "🌐 Скачать HTML", exp_ifr: "🔗 Код для Genially",
+                alert_no_data: "Нет данных для генерации!", alert_saved: "Успешно сохранено!", msg_win: "Победа! 🎉", msg_lose: "Время вышло! ⏰", cert_title: "СЕРТИФИКАТ", cert_desc: "За успешное прохождение образовательной игры", cert_date: "Дата:",
+                duel_title: "👥 Дуэль", duel_enable: "Включить режим дуэли", duel_p1: "Игрок 1:", duel_p2: "Игрок 2:", duel_turn: "Ход:", duel_winner: "Победитель:", duel_draw: "Ничья!", duel_warning: "Дуэль доступна в классическом режиме",
+                analytics_title: "📊 Аналитика", analytics_last: "Показать аналитику", analytics_json: "Скачать JSON", analytics_csv: "Скачать CSV", analytics_hard: "Сложные слова:", analytics_avg_time: "Среднее время:", analytics_recommend: "Рекомендации:",
+                share_title: "📱 Обмен игрой", share_code: "Код обмена", share_copy: "Скопировать", share_import: "Загрузить из кода", share_placeholder: "Вставьте код MGB5...", share_too_large: "Игра большая. Используйте HTML.",
+                wheel_title: "🎡 Колесо фортуны", wheel_enable: "Включить колесо", wheel_task: "Тип задания:", wheel_speak: "Озвучивать слово", wheel_show_pair: "Показывать пару", wheel_btn: "🎡 Колесо Speaking", wheel_spin: "Крутить ещё", wheel_done: "Готово",
+                creator_title: "🧑‍🏫 Ученик-создатель", creator_enable: "Разрешить создание", creator_max: "Макс. пар:", creator_btn: "Создать мини-игру", creator_download: "Скачать JSON", creator_back: "Назад", creator_import: "Загрузить игру ученика",
+                leader_title: "🏆 Рейтинг", leader_enable: "Включить рейтинг", leader_clear: "Очистить", leader_csv: "Скачать CSV", leader_top: "Топ результатов"
+            },
+            en: {
+                author_text: "by Olga Timofeeva / ", author_link: "Yes! Accessible English",
+                settings_title: "Settings (PRO)", tpl_title: "💾 Templates", tpl_current: "-- Current Session --", tpl_save: "Save", tpl_rename: "Rename", tpl_delete: "Delete", tpl_empty: "No saved templates",
+                bulk_title: "➕ Upload Pairs (up to 50)", bulk_item1: "Item 1:", bulk_item2: "Item 2:", bulk_text: "Text (Lines)", bulk_img: "Images (Files)", bulk_add: "Generate", bulk_clear: "Clear",
+                dist_title: "🎭 Distractors", dist_item: "Type:", dist_add: "➕ Add", dist_clear: "🗑️ Clear", dist_count: "✅ Added distractors:",
+                hints_title: "💡 Hints", hints_enable: "Enable hints", examples_title: "💬 Examples (optional):",
+                confetti_title: "🎊 Effects", confetti_enable: "Confetti on win",
+                adaptive_title: "🌟 Adaptive", adaptive_enable: "Adaptive mode", adaptive_threshold: "Error threshold:", adaptive_msg: "🌟 Support mode activated!",
+                hint_letter: "Hint: starts with...", hint_translation: "Hint: translation...", hint_answer: "Correct answer:",
+                texts_title: "Screen Texts", text_h1: "Title:", text_desc: "Slogan:", 
+                innov_title: "Innovations", innov_speech: "🗣️ Speak Words", innov_voice: "Accent:", voice_auto: "Auto (Browser)",
+                teach_title: "Teacher Decoder", teach_btn: "Check", 
+                vis_title: "Appearance & Sounds", vis_font: "Font:", vis_col: "Text:", vis_bg: "Bg Color:", vis_bg_transp: "Transparent Cards", vis_audio: "Bg (MP3):", vis_bg_img: "Bg (Image):",
+                rules_title: "Rules", rules_pen: "Penalty:", rules_rew: "Reward:", rules_time: "Time (sec):",
+                ui_score: "Score:", ui_time: "Time:", ui_mode_edit: "Mode: Edit", copyright: "For personal use only. Sale and transfer to third parties is prohibited",
+                ui_name_ph: "Enter your name...", ui_start: "Start Game 🚀", ui_res: "Results", ui_score_res: "Your Score:", ui_acc: "Accuracy:", ui_tcode: "Teacher Code:",
+                ui_retry: "🔄 Retry Mistakes", ui_back: "To Editor", ui_cert: "📜 Certificate",
+                modes_title: "Mode", mode_edit: "✏️ 1. Editor", mode_start: "🏠 2. Start Screen", mode_play: "🎮 3. Play", mode_fb: "🏆 4. Feedback",
+                export_title: "Export", exp_imp: "📂 Import JSON", exp_json: "💾 Save JSON", exp_html: "🌐 Download HTML", exp_ifr: "🔗 Code for Genially",
+                alert_no_data: "No data to generate!", alert_saved: "Successfully saved!", msg_win: "Victory! 🎉", msg_lose: "Time's Up! ⏰", cert_title: "CERTIFICATE", cert_desc: "For successfully completing the educational game", cert_date: "Date:",
+                duel_title: "👥 Duel", duel_enable: "Enable duel mode", duel_p1: "Player 1:", duel_p2: "Player 2:", duel_turn: "Turn:", duel_winner: "Winner:", duel_draw: "Draw!", duel_warning: "Duel is available in classic mode",
+                analytics_title: "📊 Analytics", analytics_last: "Show analytics", analytics_json: "Download JSON", analytics_csv: "Download CSV", analytics_hard: "Difficult words:", analytics_avg_time: "Avg. time:", analytics_recommend: "Recommendations:",
+                share_title: "📱 Share Game", share_code: "Share code", share_copy: "Copy", share_import: "Load from code", share_placeholder: "Paste MGB5 code...", share_too_large: "Game is large. Use HTML export.",
+                wheel_title: "🎡 Wheel of Fortune", wheel_enable: "Enable wheel", wheel_task: "Task type:", wheel_speak: "Speak the word", wheel_show_pair: "Show pair", wheel_btn: "🎡 Speaking Wheel", wheel_spin: "Spin again", wheel_done: "Done",
+                creator_title: "🧑‍🏫 Student Creator", creator_enable: "Allow creation", creator_max: "Max pairs:", creator_btn: "Create mini-game", creator_download: "Download JSON", creator_back: "Back", creator_import: "Load student game",
+                leader_title: "🏆 Leaderboard", leader_enable: "Enable leaderboard", leader_clear: "Clear", leader_csv: "Download CSV", leader_top: "Top results"
+            }
+        };
+
+        let currentLang = 'ru';
+        function setLanguage(lang) {
+            currentLang = lang; document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active')); document.querySelector(`.lang-btn[onclick="setLanguage('${lang}')"]`).classList.add('active');
+            document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = i18n[lang][el.dataset.i18n]; });
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = i18n[lang][el.dataset.i18nPh]; });
+            if(window.gameBuilder) {
+                window.gameBuilder.loadTemplatesList(); 
+                if(window.gameBuilder.state.settings.texts.startTitle === i18n[lang==='en'?'ru':'en'].texts_title || window.gameBuilder.state.settings.texts.startTitle === "Matching Game") { window.gameBuilder.state.settings.texts.startTitle = "Matching Game"; window.gameBuilder.state.settings.texts.startSlogan = lang==='ru' ? "Соедини все пары правильно, чтобы победить!" : "Match all pairs correctly to win!"; window.gameBuilder.applyVisualSettings(); }
+            }
+        }
+        function toggleBulkUI(idx) { const isText = document.getElementById(`bulk-type-${idx}`).value === 'text'; document.getElementById(`bulk-text-${idx}`).style.display = isText ? 'block' : 'none'; document.getElementById(`bulk-img-btn-${idx}`).style.display = isText ? 'none' : 'block'; document.getElementById(`count-${idx}`).style.display = isText ? 'none' : 'block'; }
+        function updateFileCount(idx) { document.getElementById(`count-${idx}`).textContent = `Выбрано файлов: ${document.getElementById(`bulk-img-${idx}`).files.length}`; }
+
+        class MatchingGameBuilder {
+            constructor() {
+                this.state = {
+                    settings: { 
+                        penalty: 50, reward: 100, timeLimit: 60, speechEnabled: false, speechLang: 'auto',
+                        hintsEnabled: false, confettiEnabled: true, adaptiveMode: false, adaptiveThreshold: 3,
+                        texts: { startTitle: "Matching Game", startSlogan: "Соедини все пары правильно, чтобы победить!" },
+                        visuals: { font: "'Nunito', sans-serif", color: "#2d3436", bg: "#ffffff", size: 16, bgImageBase64: null, bgTransparent: false },
+                        audio: { bgMusicBase64: null },
+                        gameMode: 'match',
+                        duelEnabled: false, duelP1: "Player 1", duelP2: "Player 2",
+                        wheelEnabled: false, wheelTask: "say_sentence", wheelSpeak: true, wheelShow: false,
+                        creatorEnabled: false, creatorMax: 10, leaderboardEnabled: false
+                    },
+                    pairs: [], distractors: []
+                };
+                this.mode = 'edit'; this.score = 0; this.timeLeft = 60; this.timerInterval = null; this.draggedItem = null;
+                this.mistakes = new Set(); this.distractorMistakes = []; this.activePairs = []; this.activeDistractors = []; this.comboCount = 0;
+                this.consecutiveMistakes = 0; this.isAdaptiveActive = false; this.pairMistakes = new Map();
+                
+                this.duelTurn = 1; this.duelScoreP1 = 0; this.duelScoreP2 = 0;
+                this.sessionAnalytics = null; this.dragStartTime = 0;
+
+                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.bgAudio = new Audio(); this.bgAudio.loop = true;
+
+                this.initDOM(); this.bindEvents(); this.loadTemplatesList();
+                this.applyVisualSettings(); this.renderCanvas(); setLanguage(currentLang); this.updateDistTotal();
+            }
+
+            initDOM() {
+                this.canvas = document.getElementById('game-canvas'); this.scoreEl = document.getElementById('score'); this.timerEl = document.getElementById('timer');
+                this.comboDisplay = document.getElementById('combo-display'); this.comboMult = document.getElementById('combo-multiplier');
+                this.startScreen = document.getElementById('start-screen'); this.feedbackScreen = document.getElementById('feedback-screen');
+                this.tplSelect = document.getElementById('template-select');
+            }
+
+            bindEvents() {
+                document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', (e) => this.setMode(e.target.value)));
+                document.querySelectorAll('input[name="set-gamemode"]').forEach(r => r.addEventListener('change', (e) => this.state.settings.gameMode = e.target.value));
+                
+                document.getElementById('set-penalty').value = this.state.settings.penalty; document.getElementById('set-reward').value = this.state.settings.reward; document.getElementById('set-time').value = this.state.settings.timeLimit;
+                document.getElementById('set-penalty').addEventListener('change', e => this.state.settings.penalty = +e.target.value); document.getElementById('set-reward').addEventListener('change', e => this.state.settings.reward = +e.target.value); document.getElementById('set-time').addEventListener('change', e => this.state.settings.timeLimit = +e.target.value);
+                
+                document.getElementById('set-hints').checked = this.state.settings.hintsEnabled; document.getElementById('set-hints').addEventListener('change', e => this.state.settings.hintsEnabled = e.target.checked);
+                document.getElementById('set-confetti').checked = this.state.settings.confettiEnabled; document.getElementById('set-confetti').addEventListener('change', e => this.state.settings.confettiEnabled = e.target.checked);
+                
+                document.getElementById('set-adaptive').checked = this.state.settings.adaptiveMode; document.getElementById('set-adaptive-thresh').value = this.state.settings.adaptiveThreshold;
+                document.getElementById('adaptive-thresh-container').style.display = this.state.settings.adaptiveMode ? 'flex' : 'none';
+                document.getElementById('set-adaptive').addEventListener('change', e => { this.state.settings.adaptiveMode = e.target.checked; document.getElementById('adaptive-thresh-container').style.display = e.target.checked ? 'flex' : 'none'; });
+                document.getElementById('set-adaptive-thresh').addEventListener('change', e => this.state.settings.adaptiveThreshold = +e.target.value);
+
+                document.getElementById('set-speech').addEventListener('change', e => { this.state.settings.speechEnabled = e.target.checked; document.getElementById('speech-lang-container').style.display = e.target.checked ? 'flex' : 'none'; });
+                document.getElementById('set-speech-lang').addEventListener('change', e => this.state.settings.speechLang = e.target.value);
+                
+                document.getElementById('set-duel').addEventListener('change', e => { this.state.settings.duelEnabled = e.target.checked; document.getElementById('duel-names').style.display = e.target.checked ? 'flex' : 'none'; });
+                document.getElementById('set-p1').addEventListener('input', e => this.state.settings.duelP1 = e.target.value || 'Player 1');
+                document.getElementById('set-p2').addEventListener('input', e => this.state.settings.duelP2 = e.target.value || 'Player 2');
+                
+                document.getElementById('set-wheel').addEventListener('change', e => { this.state.settings.wheelEnabled = e.target.checked; document.getElementById('wheel-opts').style.display = e.target.checked ? 'flex' : 'none'; });
+                document.getElementById('set-wheel-task').addEventListener('change', e => this.state.settings.wheelTask = e.target.value);
+                document.getElementById('set-wheel-speak').addEventListener('change', e => this.state.settings.wheelSpeak = e.target.checked);
+                document.getElementById('set-wheel-show').addEventListener('change', e => this.state.settings.wheelShow = e.target.checked);
+                
+                document.getElementById('set-creator').addEventListener('change', e => { this.state.settings.creatorEnabled = e.target.checked; document.getElementById('creator-max-cont').style.display = e.target.checked ? 'flex' : 'none'; });
+                document.getElementById('set-creator-max').addEventListener('change', e => this.state.settings.creatorMax = +e.target.value);
+                
+                document.getElementById('set-leader').addEventListener('change', e => this.state.settings.leaderboardEnabled = e.target.checked);
+                document.getElementById('btn-clear-leader').addEventListener('click', () => { setLS('mgb_leaderboard', []); alert('Рейтинг очищен!'); });
+                document.getElementById('btn-dl-leader').addEventListener('click', () => this.exportLeaderboardCSV());
+                
+                document.getElementById('btn-show-analytics').addEventListener('click', () => this.showAnalyticsModal());
+                document.getElementById('btn-dl-analytics-json').addEventListener('click', () => this.exportAnalytics('json'));
+                document.getElementById('btn-dl-analytics-csv').addEventListener('click', () => this.exportAnalytics('csv'));
+                
+                document.getElementById('btn-get-code').addEventListener('click', () => this.generateShareCode());
+                document.getElementById('btn-copy-code').addEventListener('click', () => { const a = document.getElementById('share-code-area'); a.select(); document.execCommand('copy'); });
+                document.getElementById('btn-import-code').addEventListener('click', () => this.importShareCode());
+                
+                document.getElementById('cr-start').addEventListener('click', () => this.startStudentGame());
+                document.getElementById('cr-dl').addEventListener('click', () => this.downloadStudentGame());
+                document.getElementById('cr-close').addEventListener('click', () => document.getElementById('creator-modal').classList.remove('active'));
+                document.getElementById('import-student-input').addEventListener('change', (e) => this.importStudentGame(e));
+                
+                document.getElementById('wheel-spin-btn').addEventListener('click', () => this.spinWheel());
+
+                document.getElementById('set-font').addEventListener('change', e => { this.state.settings.visuals.font = e.target.value; this.applyVisualSettings(); });
+                document.getElementById('set-color').addEventListener('change', e => { this.state.settings.visuals.color = e.target.value; this.applyVisualSettings(); });
+                document.getElementById('set-bg').addEventListener('change', e => { this.state.settings.visuals.bg = e.target.value; this.applyVisualSettings(); });
+                document.getElementById('set-bg-transparent').addEventListener('change', e => { this.state.settings.visuals.bgTransparent = e.target.checked; this.applyVisualSettings(); });
+                document.getElementById('set-start-title').addEventListener('input', e => { this.state.settings.texts.startTitle = e.target.value; document.getElementById('screen-start-title').textContent = e.target.value; });
+                document.getElementById('set-start-slogan').addEventListener('input', e => { this.state.settings.texts.startSlogan = e.target.value; document.getElementById('screen-start-slogan').textContent = e.target.value; });
+                
+                document.getElementById('set-music').addEventListener('change', (e) => { if(e.target.files[0]) { const r = new FileReader(); r.onload = (ev) => { this.state.settings.audio.bgMusicBase64 = ev.target.result; this.bgAudio.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); }});
+                document.getElementById('set-bg-img').addEventListener('change', (e) => { if(e.target.files[0]) { const r = new FileReader(); r.onload = (ev) => { this.state.settings.visuals.bgImageBase64 = ev.target.result; this.applyVisualSettings(); }; r.readAsDataURL(e.target.files[0]); }});
+                document.getElementById('clear-bg-img').addEventListener('click', () => { this.state.settings.visuals.bgImageBase64 = null; document.getElementById('set-bg-img').value = ''; this.applyVisualSettings(); });
+
+                document.getElementById('bulk-add-btn').addEventListener('click', () => this.generatePairs());
+                document.getElementById('clear-canvas-btn').addEventListener('click', () => { this.state.pairs = []; this.renderCanvas(); });
+                document.getElementById('dist-add-btn').addEventListener('click', () => this.generateDistractors());
+                document.getElementById('dist-clear-btn').addEventListener('click', () => { this.state.distractors = []; this.renderCanvas(); this.updateDistTotal(); });
+
+                document.getElementById('check-code-btn').addEventListener('click', () => {
+                    const code = document.getElementById('check-code-input').value.trim().toUpperCase(); const res = document.getElementById('check-code-result');
+                    if(code.length === 4) { const m = code.charCodeAt(0) - 65; const s = parseInt(code.substring(1), 16); if (!isNaN(m) && !isNaN(s)) { res.innerHTML = `✅ Ошибок: <b style="color:var(--error)">${m}</b> | Счет: <b style="color:var(--primary)">${s}</b>`; return; } }
+                    res.innerHTML = `❌ Неверный формат`;
+                });
+
+                const importJsonInput = document.getElementById('import-json-input');
+                document.getElementById('import-json-btn').addEventListener('click', () => importJsonInput.click());
+                importJsonInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result); const stateData = data.state ? data.state : data;
+                            if (stateData.settings && stateData.pairs) {
+                                this.state = stateData; this.state.distractors = stateData.distractors || [];
+                                if(this.state.settings.gameMode === undefined) this.state.settings.gameMode = 'match';
+                                if(this.state.settings.duelEnabled === undefined) this.state.settings.duelEnabled = false;
+                                if(this.state.settings.wheelEnabled === undefined) this.state.settings.wheelEnabled = false;
+                                if(this.state.settings.creatorEnabled === undefined) this.state.settings.creatorEnabled = false;
+                                if(this.state.settings.leaderboardEnabled === undefined) this.state.settings.leaderboardEnabled = false;
+                                this.applyVisualSettings(); this.renderCanvas(); this.updateDistTotal(); alert(i18n[currentLang].alert_saved);
+                            }
+                        } catch (err) { alert("Ошибка JSON / JSON Error: " + err.message); }
+                    }; reader.readAsText(file); e.target.value = '';
+                });
+
+                document.getElementById('tpl-save').addEventListener('click', () => this.saveTemplate());
+                document.getElementById('tpl-rename').addEventListener('click', () => this.renameTemplate());
+                document.getElementById('tpl-delete').addEventListener('click', () => this.deleteTemplate());
+                this.tplSelect.addEventListener('change', (e) => this.loadTemplate(e.target.value));
+
+                document.getElementById('download-cert-btn').addEventListener('click', () => this.generateCertificate());
+                document.getElementById('export-json').addEventListener('click', () => this.exportJSON());
+                document.getElementById('export-html').addEventListener('click', () => this.exportStandaloneHTML());
+                document.getElementById('export-iframe').addEventListener('click', () => this.exportIframe());
+                document.getElementById('retry-mistakes-btn').addEventListener('click', () => this.startRetryGame());
+
+                this.canvas.addEventListener('pointerdown', this.onPointerDown.bind(this));
+                document.addEventListener('pointermove', this.onPointerMove.bind(this));
+                document.addEventListener('pointerup', this.onPointerUp.bind(this));
+            }
+
+            async generatePairs() {
+                const t1 = document.getElementById('bulk-type-1').value; const t2 = document.getElementById('bulk-type-2').value;
+                let items1 = await this.getBulkItems('1', t1); let items2 = await this.getBulkItems('2', t2);
+                let examples = document.getElementById('bulk-examples').value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+                let limit = Math.min(items1.length, items2.length, 50);
+                if(limit === 0) return alert(i18n[currentLang].alert_no_data);
+                let startX1 = 50, startY1 = 50, startX2 = 300, startY2 = 50;
+                for(let i=0; i<limit; i++) {
+                    this.state.pairs.push({ id: 'p_' + Date.now() + '_' + i, item1: { content: items1[i], x: startX1 + (i%5)*15, y: startY1 + (i%5)*15 }, item2: { content: items2[i], x: startX2 + (i%5)*15, y: startY2 + (i%5)*15 }, example: examples[i] || null });
+                }
+                this.renderCanvas(); document.getElementById('bulk-text-1').value = ''; document.getElementById('bulk-text-2').value = ''; document.getElementById('bulk-examples').value = '';
+                document.getElementById('bulk-img-1').value = ''; document.getElementById('bulk-img-2').value = ''; updateFileCount('1'); updateFileCount('2');
+            }
+
+            async generateDistractors() {
+                if(!this.state.distractors) this.state.distractors = []; const type = document.getElementById('bulk-type-dist').value;
+                let items = await this.getBulkItems('dist', type);
+                if(items.length === 0) return alert(i18n[currentLang].alert_no_data);
+                let startX = 150, startY = 150;
+                items.forEach((content, i) => { this.state.distractors.push({ id: 'd_' + Date.now() + '_' + i, content, x: startX + (i%5)*15, y: startY + (i%5)*15 }); });
+                this.renderCanvas(); document.getElementById('bulk-text-dist').value = ''; document.getElementById('bulk-img-dist').value = ''; updateFileCount('dist'); this.updateDistTotal();
+            }
+            updateDistTotal() { document.getElementById('dist-total').textContent = (this.state.distractors || []).length; }
+
+            async getBulkItems(idx, type) {
+                if (type === 'text') return document.getElementById(`bulk-text-${idx}`).value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+                else { const files = document.getElementById(`bulk-img-${idx}`).files; let arr = []; for(let i=0; i<files.length; i++) { const b64 = await new Promise(r => { const rd = new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(files[i]); }); arr.push(`<img src="${b64}">`); } return arr; }
+            }
+
+            getTemplates() { return JSON.parse(localStorage.getItem('mgb_templates') || '{}'); }
+            setTemplates(tpls) { localStorage.setItem('mgb_templates', JSON.stringify(tpls)); this.loadTemplatesList(); }
+            
+            loadTemplatesList() {
+                const tpls = this.getTemplates(); const sel = this.tplSelect.value;
+                this.tplSelect.innerHTML = `<option value="">${i18n[currentLang].tpl_current}</option>`;
+                const visList = document.getElementById('visible-template-list'); visList.innerHTML = ''; let hasTpls = false;
+                for(let id in tpls) {
+                    hasTpls = true; this.tplSelect.innerHTML += `<option value="${id}">${tpls[id].name}</option>`;
+                    const li = document.createElement('li'); li.textContent = tpls[id].name; li.dataset.id = id;
+                    if(id === sel) li.classList.add('active');
+                    li.onclick = () => { this.tplSelect.value = id; this.loadTemplate(id); }; visList.appendChild(li);
+                }
+                if(tpls[sel]) this.tplSelect.value = sel;
+                if(!hasTpls) visList.innerHTML = `<div class="template-list-empty">${i18n[currentLang].tpl_empty}</div>`;
+            }
+            updateActiveTemplateUI(id) { document.querySelectorAll('#visible-template-list li').forEach(li => { if(li.dataset.id === id) li.classList.add('active'); else li.classList.remove('active'); }); }
+
+            saveTemplate() {
+                const tpls = this.getTemplates(); let id = this.tplSelect.value;
+                if(!id) { const name = prompt("Введите имя нового шаблона:"); if(!name) return; id = 'tpl_' + Date.now(); tpls[id] = { name: name, state: this.state }; 
+                    this.setTemplates(tpls); this.tplSelect.value = id; this.updateActiveTemplateUI(id);
+                } else { tpls[id].state = this.state; this.setTemplates(tpls); alert(i18n[currentLang].alert_saved); }
+            }
+            renameTemplate() { const id = this.tplSelect.value; if(!id) return; const tpls = this.getTemplates(); const newName = prompt("Новое имя:", tpls[id].name); if(newName) { tpls[id].name = newName; this.setTemplates(tpls); this.tplSelect.value = id; this.updateActiveTemplateUI(id);} }
+            deleteTemplate() { const id = this.tplSelect.value; if(!id) return; if(confirm("Точно удалить?")) { const tpls = this.getTemplates(); delete tpls[id]; this.setTemplates(tpls); this.state.pairs = []; this.state.distractors = []; this.renderCanvas(); this.updateDistTotal(); } }
+
+            loadTemplate(id) {
+                if(!id) { this.updateActiveTemplateUI(''); return; }
+                const tpls = this.getTemplates();
+                if(tpls[id]) {
+                    this.state = tpls[id].state; this.state.distractors = this.state.distractors || [];
+                    if(this.state.settings.gameMode === undefined) this.state.settings.gameMode = 'match';
+                    if(this.state.settings.duelEnabled === undefined) this.state.settings.duelEnabled = false;
+                    this.applyVisualSettings(); this.renderCanvas(); this.updateDistTotal(); this.updateActiveTemplateUI(id);
+                }
+            }
+
+            applyVisualSettings() {
+                const v = this.state.settings.visuals;
+                document.documentElement.style.setProperty('--item-font', v.font); document.documentElement.style.setProperty('--item-color', v.color); document.documentElement.style.setProperty('--item-bg', v.bgTransparent ? 'transparent' : v.bg);
+                document.getElementById('set-penalty').value = this.state.settings.penalty; document.getElementById('set-reward').value = this.state.settings.reward; document.getElementById('set-time').value = this.state.settings.timeLimit;
+                document.getElementById('set-hints').checked = this.state.settings.hintsEnabled; document.getElementById('set-confetti').checked = this.state.settings.confettiEnabled;
+                document.getElementById('set-adaptive').checked = this.state.settings.adaptiveMode; document.getElementById('set-adaptive-thresh').value = this.state.settings.adaptiveThreshold; document.getElementById('adaptive-thresh-container').style.display = this.state.settings.adaptiveMode ? 'flex' : 'none';
+                
+                document.querySelector(`input[name="set-gamemode"][value="${this.state.settings.gameMode}"]`).checked = true;
+                
+                document.getElementById('set-duel').checked = this.state.settings.duelEnabled; document.getElementById('duel-names').style.display = this.state.settings.duelEnabled ? 'flex' : 'none';
+                document.getElementById('set-p1').value = this.state.settings.duelP1 || ''; document.getElementById('set-p2').value = this.state.settings.duelP2 || '';
+                document.getElementById('set-wheel').checked = this.state.settings.wheelEnabled; document.getElementById('wheel-opts').style.display = this.state.settings.wheelEnabled ? 'flex' : 'none';
+                document.getElementById('set-wheel-task').value = this.state.settings.wheelTask || 'say_sentence'; document.getElementById('set-wheel-speak').checked = this.state.settings.wheelSpeak !== false; document.getElementById('set-wheel-show').checked = this.state.settings.wheelShow || false;
+                document.getElementById('set-creator').checked = this.state.settings.creatorEnabled; document.getElementById('creator-max-cont').style.display = this.state.settings.creatorEnabled ? 'flex' : 'none'; document.getElementById('set-creator-max').value = this.state.settings.creatorMax || 10;
+                document.getElementById('set-leader').checked = this.state.settings.leaderboardEnabled;
+                
+                document.getElementById('set-bg-transparent').checked = v.bgTransparent || false; document.getElementById('set-start-title').value = this.state.settings.texts.startTitle; document.getElementById('screen-start-title').textContent = this.state.settings.texts.startTitle; document.getElementById('set-start-slogan').value = this.state.settings.texts.startSlogan; document.getElementById('screen-start-slogan').textContent = this.state.settings.texts.startSlogan; document.getElementById('set-font').value = v.font; document.getElementById('set-color').value = v.color; document.getElementById('set-bg').value = v.bg;
+                document.getElementById('set-speech').checked = this.state.settings.speechEnabled; document.getElementById('set-speech-lang').value = this.state.settings.speechLang || 'auto'; document.getElementById('speech-lang-container').style.display = this.state.settings.speechEnabled ? 'flex' : 'none';
+                if(v.bgImageBase64) { this.canvas.style.backgroundImage = `url(${v.bgImageBase64})`; this.canvas.style.backgroundSize = 'cover'; this.canvas.style.backgroundPosition = 'center'; } else { this.canvas.style.backgroundImage = 'none'; }
+                document.getElementById('btn-open-creator').style.display = this.state.settings.creatorEnabled ? 'inline-block' : 'none';
+            }
+
+            setMode(newMode) {
+                this.mode = newMode; this.canvas.className = `game-canvas ${this.mode === 'edit' ? 'edit-mode' : ''}`;
+                document.getElementById('game-stats').style.visibility = this.mode === 'play' ? 'visible' : 'hidden';
+                this.startScreen.classList.remove('active'); this.feedbackScreen.classList.remove('active');
+                clearInterval(this.timerInterval); this.bgAudio.pause(); this.comboCount = 0; this.updateComboDOM();
+                if (this.mode === 'start') this.startScreen.classList.add('active');
+                else if (this.mode === 'feedback') this.endGame(true, true);
+                else if (this.mode === 'play') this.startGame(this.state.pairs, this.state.distractors);
+                else this.renderCanvas(); 
+                document.querySelector(`input[value="${newMode}"]`).checked = true;
+            }
+
+            startGame(pairsToPlay, distractorsToPlay = this.state.distractors || []) {
+                document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
+                document.querySelector('.canvas-header').style.visibility = 'visible';
+                if(this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                if(this.state.settings.audio.bgMusicBase64) this.bgAudio.play().catch(e=>{});
+                
+                this.activePairs = pairsToPlay; this.activeDistractors = distractorsToPlay;
+                this.mistakes.clear(); this.distractorMistakes = [];
+                this.consecutiveMistakes = 0; this.isAdaptiveActive = false; this.canvas.classList.remove('adaptive-active'); this.pairMistakes.clear();
+                
+                this.score = 0; this.comboCount = 0; this.timeLeft = this.state.settings.timeLimit || 60;
+                this.sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('student-name-input').value || 'Student', gameMode: this.state.settings.gameMode, pairs: {} };
+                this.activePairs.forEach(p => { this.sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
+                
+                const isDuel = this.state.settings.duelEnabled && this.state.settings.gameMode === 'match';
+                document.getElementById('single-score-ui').style.display = isDuel ? 'none' : 'flex';
+                document.getElementById('duel-ui').style.display = isDuel ? 'flex' : 'none';
+                if(isDuel) {
+                    this.duelTurn = 1; this.duelScoreP1 = 0; this.duelScoreP2 = 0;
+                    document.getElementById('duel-n1').textContent = this.state.settings.duelP1 || i18n[currentLang].duel_p1;
+                    document.getElementById('duel-n2').textContent = this.state.settings.duelP2 || i18n[currentLang].duel_p2;
+                    this.updateDuelUI();
+                } else { this.scoreEl.textContent = this.score; }
+                
+                this.updateComboDOM(); clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => { this.timeLeft--; this.timerEl.textContent = this.timeLeft; if(this.timeLeft<=10) this.timerEl.classList.add('time-warning'); else this.timerEl.classList.remove('time-warning'); if(this.timeLeft <= 0) this.endGame(false); }, 1000);
+                this.renderCanvas(this.activePairs, this.activeDistractors);
+            }
+
+            updateDuelUI() {
+                document.getElementById('duel-s1').textContent = this.duelScoreP1; document.getElementById('duel-s2').textContent = this.duelScoreP2;
+                document.getElementById('duel-p1-ui').className = `duel-player ${this.duelTurn === 1 ? 'active-turn' : ''}`;
+                document.getElementById('duel-p2-ui').className = `duel-player ${this.duelTurn === 2 ? 'active-turn' : ''}`;
+                const n = this.duelTurn === 1 ? (this.state.settings.duelP1 || i18n[currentLang].duel_p1) : (this.state.settings.duelP2 || i18n[currentLang].duel_p2);
+                document.getElementById('duel-turn-ui').textContent = `${i18n[currentLang].duel_turn || 'Turn:'} ${n}`;
+            }
+
+            startRetryGame() { const arr = Array.from(this.mistakes); this.setMode('play'); this.startGame(this.state.pairs.filter(p => arr.includes(p.id)), []); }
+
+            endGame(isWin, isPreview = false) {
+                clearInterval(this.timerInterval); this.bgAudio.pause();
+                if (isWin && !isPreview && this.state.settings.confettiEnabled) launchConfetti();
+
+                const isDuel = this.state.settings.duelEnabled && this.state.settings.gameMode === 'match';
+                document.getElementById('feedback-title').textContent = isWin ? i18n[currentLang].msg_win : i18n[currentLang].msg_lose;
+                document.getElementById('feedback-title').style.color = isWin ? "var(--primary)" : "var(--error)";
+                
+                const totalPlayed = isPreview ? this.state.pairs.length : this.activePairs.length;
+                let mistakesCount = this.mistakes.size + this.distractorMistakes.length;
+                const accuracy = totalPlayed > 0 ? Math.max(0, Math.round(((totalPlayed - mistakesCount) / totalPlayed) * 100)) : 100;
+                
+                if (isDuel && !isPreview) {
+                    document.getElementById('score-container').style.display = 'none'; document.getElementById('duel-fb-container').style.display = 'block';
+                    document.getElementById('duel-fb-n1').textContent = this.state.settings.duelP1 || i18n[currentLang].duel_p1;
+                    document.getElementById('duel-fb-n2').textContent = this.state.settings.duelP2 || i18n[currentLang].duel_p2;
+                    document.getElementById('duel-fb-s1').textContent = this.duelScoreP1; document.getElementById('duel-fb-s2').textContent = this.duelScoreP2;
+                    let winnerTxt = i18n[currentLang].duel_draw;
+                    if(this.duelScoreP1 > this.duelScoreP2) winnerTxt = `${i18n[currentLang].duel_winner} ${this.state.settings.duelP1}`;
+                    else if(this.duelScoreP2 > this.duelScoreP1) winnerTxt = `${i18n[currentLang].duel_winner} ${this.state.settings.duelP2}`;
+                    document.getElementById('duel-fb-winner').textContent = winnerTxt;
+                } else {
+                    document.getElementById('score-container').style.display = 'block'; document.getElementById('duel-fb-container').style.display = 'none';
+                    document.getElementById('feedback-score').textContent = this.score; document.getElementById('feedback-accuracy').textContent = accuracy;
+                }
+
+                const mCode = Math.min(mistakesCount, 25); let sStr = Math.max(0, this.score).toString(16).padStart(3, '0').toUpperCase();
+                if(sStr.length > 3) sStr = sStr.substring(sStr.length - 3); document.getElementById('teacher-code-display').textContent = String.fromCharCode(65 + mCode) + sStr;
+
+                const mList = document.getElementById('feedback-mistakes'); mList.innerHTML = '';
+                if (mistakesCount > 0) {
+                    document.getElementById('mistakes-container').style.display = 'flex';
+                    this.mistakes.forEach(id => {
+                        const p = this.state.pairs.find(x => x.id === id);
+                        if(p) {
+                            const i1 = p.item1.content.includes('<img') ? p.item1.content : `<span>${p.item1.content}</span>`;
+                            const i2 = p.item2.content.includes('<img') ? p.item2.content : `<span>${p.item2.content}</span>`;
+                            mList.innerHTML += `<div class="mistake-card">${i1} <span class="mistake-arrow">➔</span> ${i2}</div>`;
+                        }
+                    });
+                    this.distractorMistakes.forEach(m => {
+                        const i1 = m.drag.includes('<img') ? m.drag : `<span>${m.drag}</span>`;
+                        const i2 = m.drop.includes('<img') ? m.drop : `<span>${m.drop}</span>`;
+                        mList.innerHTML += `<div class="mistake-card">${i1} <span class="mistake-arrow">➔ 🎭</span> ${i2}</div>`;
+                    });
+                } else document.getElementById('mistakes-container').style.display = 'none';
+
+                if (!isPreview && this.sessionAnalytics) {
+                    this.sessionAnalytics.totalScore = isDuel ? Math.max(this.duelScoreP1, this.duelScoreP2) : this.score;
+                    this.sessionAnalytics.accuracy = accuracy;
+                    this.sessionAnalytics.timeSpent = (this.state.settings.timeLimit || 60) - this.timeLeft;
+                    let hist = getLS('mgb_analytics_history', []); hist.unshift(this.sessionAnalytics);
+                    if(hist.length > 50) hist = hist.slice(0, 50); setLS('mgb_analytics_history', hist);
+                }
+
+                if (!isPreview && this.state.settings.leaderboardEnabled && !isDuel) {
+                    let lb = getLS('mgb_leaderboard', []);
+                    lb.push({ name: document.getElementById('student-name-input').value || 'Student', score: this.score, accuracy: accuracy, date: new Date().toLocaleDateString() });
+                    lb.sort((a,b) => b.score - a.score); lb = lb.slice(0, 20); setLS('mgb_leaderboard', lb);
+                    this.renderLeaderboard();
+                } else { document.getElementById('leaderboard-fb-container').style.display = 'none'; }
+
+                if (this.state.settings.wheelEnabled && isWin && !isPreview && this.activePairs.length > 0) { document.getElementById('btn-open-wheel').style.display = 'inline-block'; } 
+                else { document.getElementById('btn-open-wheel').style.display = 'none'; }
+
+                this.feedbackScreen.classList.add('active');
+            }
+
+            renderCanvas(pairs = this.state.pairs, distractors = (this.state.distractors || [])) {
+                this.canvas.innerHTML = ''; const mode = this.state.settings.gameMode;
+                pairs.forEach(pair => {
+                    [pair.item1, pair.item2].forEach((d, i) => {
+                        const el = document.createElement('div'); el.className = 'game-item'; el.innerHTML = d.content;
+                        if(mode === 'memory' && this.mode === 'play') el.classList.add('face-down');
+                        el.dataset.pairId = pair.id; el.dataset.type = i===0?'1':'2'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px';
+                        this.canvas.appendChild(el);
+                    });
+                });
+                distractors.forEach(d => {
+                    const el = document.createElement('div'); el.className = 'game-item distractor'; el.innerHTML = d.content;
+                    if(mode === 'memory' && this.mode === 'play') el.classList.add('face-down');
+                    el.dataset.id = d.id; el.dataset.type = 'd'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px';
+                    this.canvas.appendChild(el);
+                });
+            }
+
+            onPointerDown(e) {
+                const target = e.target.closest('.game-item'); if (!target) return;
+                if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                if (this.mode === 'play' && this.state.settings.gameMode === 'memory' && target.classList.contains('face-down')) target.classList.remove('face-down');
+                this.dragStartTime = Date.now();
+                this.draggedItem = { el: target, startX: e.clientX, startY: e.clientY, initialLeft: parseFloat(target.style.left||0), initialTop: parseFloat(target.style.top||0) };
+                target.setPointerCapture(e.pointerId); target.style.zIndex = 1000;
+            }
+            onPointerMove(e) {
+                if (!this.draggedItem) return;
+                this.draggedItem.el.style.left = `${this.draggedItem.initialLeft + (e.clientX - this.draggedItem.startX)}px`;
+                this.draggedItem.el.style.top = `${this.draggedItem.initialTop + (e.clientY - this.draggedItem.startY)}px`;
+            }
+            
+            onPointerUp(e) {
+                if (!this.draggedItem) return; const el = this.draggedItem.el; el.style.zIndex = ''; el.releasePointerCapture(e.pointerId);
+                const rT = Date.now() - this.dragStartTime;
+                const all = Array.from(this.canvas.querySelectorAll('.game-item:not(.matched)'));
+                const dropTarget = all.find(item => { if(item===el) return false; const r = item.getBoundingClientRect(); return e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom; });
+                
+                if (this.mode === 'edit') { 
+                    if (el.dataset.type === 'd') { const d = this.state.distractors.find(x => x.id === el.dataset.id); if (d) { d.x = parseFloat(el.style.left); d.y = parseFloat(el.style.top); } } 
+                    else { this.updateStatePosition(el.dataset.pairId, el.dataset.type, parseFloat(el.style.left), parseFloat(el.style.top)); }
+                } 
+                else if (this.mode === 'play') {
+                    if (dropTarget) {
+                        const isDuel = this.state.settings.duelEnabled && this.state.settings.gameMode === 'match';
+                        const isDistractor = dropTarget.dataset.type === 'd' || el.dataset.type === 'd';
+                        let actualPenalty = this.isAdaptiveActive ? Math.ceil(this.state.settings.penalty / 2) : this.state.settings.penalty;
+
+                        const pid = el.dataset.type === 'd' ? dropTarget.dataset.pairId : el.dataset.pairId;
+                        if(this.sessionAnalytics && this.sessionAnalytics.pairs[pid]) { this.sessionAnalytics.pairs[pid].attempts++; this.sessionAnalytics.pairs[pid].timeTotalMs += rT; }
+
+                        if (isDistractor) {
+                            if(this.sessionAnalytics && pid && this.sessionAnalytics.pairs[pid]) { this.sessionAnalytics.pairs[pid].distractorErr++; this.sessionAnalytics.pairs[pid].mistakes++; }
+                            this.distractorMistakes.push({ drag: el.innerHTML, drop: dropTarget.innerHTML });
+                            this.comboCount = 0; this.updateComboDOM();
+                            
+                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; }
+                            
+                            if(navigator.vibrate) navigator.vibrate(200);
+                            this.showFloatingText(`-${actualPenalty} 🎭`, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top - 30, 'error');
+                            el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); this.returnItemToStart(el);
+                            this.handleMistakeLogic();
+                        }
+                        else if (dropTarget.dataset.pairId === el.dataset.pairId) {
+                            this.consecutiveMistakes = 0; if (this.isAdaptiveActive) { this.isAdaptiveActive = false; this.canvas.classList.remove('adaptive-active'); }
+                            this.comboCount++; this.updateComboDOM();
+                            let mult = this.comboCount >= 5 ? 3 : (this.comboCount >= 3 ? 2 : 1); let earned = this.state.settings.reward * mult;
+                            
+                            if(isDuel) { if(this.duelTurn === 1) this.duelScoreP1 += earned; else this.duelScoreP2 += earned; this.updateDuelUI(); } else { this.score += earned; }
+                            this.showFloatingText(`+${earned}`, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top - 30, this.comboCount>=5?'combo-5':(this.comboCount>=3?'combo-3':'success'));
+                            
+                            const p = this.state.pairs.find(x => x.id === el.dataset.pairId);
+                            if (p && p.example) this.showFloatingText(p.example, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top + 20, 'context-example');
+                            if(navigator.vibrate) navigator.vibrate([50,30,50]);
+                            
+                            if(this.state.settings.speechEnabled){ 
+                                const t = (el.dataset.type==='2'?el:dropTarget).innerHTML.replace(/<[^>]*>?/gm,'').trim(); 
+                                if(t) { const utter = new SpeechSynthesisUtterance(t); if(this.state.settings.speechLang && this.state.settings.speechLang !== 'auto') utter.lang = this.state.settings.speechLang; speechSynthesis.speak(utter); }
+                            }
+                            
+                            dropTarget.classList.add('flash'); el.style.opacity = '0';
+                            setTimeout(() => { el.classList.add('matched'); dropTarget.classList.add('matched'); dropTarget.classList.remove('flash'); if (this.canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) this.endGame(true); }, 400);
+                        } else {
+                            if(this.sessionAnalytics && this.sessionAnalytics.pairs[pid]) this.sessionAnalytics.pairs[pid].mistakes++;
+                            this.mistakes.add(el.dataset.pairId); this.comboCount = 0; this.updateComboDOM();
+                            
+                            if(isDuel) { this.duelTurn = this.duelTurn === 1 ? 2 : 1; this.updateDuelUI(); } else { this.score -= actualPenalty; }
+                            this.showFloatingText(`-${actualPenalty}`, e.clientX - this.canvas.getBoundingClientRect().left, e.clientY - this.canvas.getBoundingClientRect().top - 30, 'error');
+                            if(navigator.vibrate) navigator.vibrate(200);
+                            el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); this.returnItemToStart(el);
+                            this.handleMistakeLogic(); this.handleHints(el, dropTarget, el.dataset.pairId);
+                        }
+                        this.scoreEl.textContent = this.score;
+                    } else {
+                        if(this.state.settings.gameMode === 'memory') el.classList.add('face-down');
+                        this.returnItemToStart(el);
+                    }
+                }
+                this.draggedItem = null;
+            }
+
+            handleMistakeLogic() {
+                if (this.state.settings.adaptiveMode) {
+                    this.consecutiveMistakes++;
+                    if (this.consecutiveMistakes >= this.state.settings.adaptiveThreshold && !this.isAdaptiveActive) {
+                        this.isAdaptiveActive = true; this.canvas.classList.add('adaptive-active'); this.timeLeft += 15; document.getElementById('timer').textContent = this.timeLeft;
+                        this.showToast(i18n[currentLang].adaptive_msg);
+                    }
+                }
+            }
+
+            handleHints(draggedEl, dropTarget, pairId) {
+                if (!this.state.settings.hintsEnabled) return;
+                let mc = (this.pairMistakes.get(pairId) || 0) + 1; this.pairMistakes.set(pairId, mc);
+                const p = this.state.pairs.find(x => x.id === pairId); const answerItem = draggedEl.dataset.type === '1' ? p.item2 : p.item1;
+                const answerText = answerItem.content.replace(/<[^>]*>?/gm,'').trim();
+                let hintText = "";
+                if (!answerText) { hintText = mc === 1 ? "🖼️ (Look carefully!)" : "🖼️ (Match with image!)"; } 
+                else {
+                    if (mc === 1) hintText = `${i18n[currentLang].hint_letter} ${answerText.charAt(0)}...`;
+                    else if (mc === 2) hintText = `${i18n[currentLang].hint_translation} ${answerText}`; 
+                    else if (mc >= 3) {
+                        hintText = `${i18n[currentLang].hint_answer} ${answerText}`;
+                        if (this.state.settings.speechEnabled) { const utter = new SpeechSynthesisUtterance(answerText); if(this.state.settings.speechLang && this.state.settings.speechLang !== 'auto') utter.lang = this.state.settings.speechLang; speechSynthesis.speak(utter); }
+                    }
+                }
+                if (hintText) {
+                    const existing = draggedEl.querySelector('.hint-cloud'); if (existing) existing.remove();
+                    const cloud = document.createElement('div'); cloud.className = 'hint-cloud'; cloud.textContent = hintText; draggedEl.appendChild(cloud);
+                }
+            }
+
+            returnItemToStart(el) { 
+                let d; if (el.dataset.type === 'd') { d = (this.state.distractors || []).find(x => x.id === el.dataset.id); } else { const p = this.state.pairs.find(p => p.id === el.dataset.pairId); d = el.dataset.type === '1' ? p.item1 : p.item2; }
+                el.style.transition = 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; 
+                setTimeout(() => el.style.transition = 'transform 0.1s', 400); 
+            }
+            showFloatingText(txt, x, y, type) { const f = document.createElement('div'); f.className = `floating-score ${type}`; f.textContent = txt; f.style.left = x + 'px'; f.style.top = y + 'px'; this.canvas.appendChild(f); setTimeout(() => f.remove(), type==='context-example' ? 3500 : 1200); }
+            showToast(msg) { const toast = document.createElement('div'); toast.className = 'adaptive-toast'; toast.textContent = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+            updateStatePosition(id, type, x, y) { const p = this.state.pairs.find(p=>p.id===id); if(p) { p[type==='1'?'item1':'item2'].x=x; p[type==='1'?'item1':'item2'].y=y; } }
+            updateComboDOM() { const ui = this.comboDisplay; if(this.comboCount>=3){ ui.style.display='block'; this.comboMult.textContent=this.comboCount>=5?'3':'2'; ui.style.color=this.comboCount>=5?'#9C27B0':'#FFB300'; } else ui.style.display='none'; }
+
+            // Stage 5 Local Functions
+            renderLeaderboard() {
+                const lb = getLS('mgb_leaderboard', []); const c = document.getElementById('leaderboard-fb-container'); const list = document.getElementById('leaderboard-list'); list.innerHTML = '';
+                if(lb.length > 0) { c.style.display = 'block'; lb.slice(0,5).forEach((entry, i) => { list.innerHTML += `<div class="leaderboard-item ${entry.score === this.score ? 'highlight':''}"><span style="color:#636e72;">#${i+1}</span> ${entry.name} <span>${entry.score} pts (${entry.accuracy}%)</span></div>`; }); } else c.style.display = 'none';
+            }
+            exportLeaderboardCSV() {
+                const lb = getLS('mgb_leaderboard', []); if(lb.length===0) return alert('No data');
+                let csv = "Rank,Name,Score,Accuracy,Date\n"; lb.forEach((e,i) => csv += `${i+1},${e.name},${e.score},${e.accuracy}%,${e.date}\n`);
+                this.downloadFile("data:text/csv;charset=utf-8," + encodeURIComponent(csv), "leaderboard.csv");
+            }
+
+            showAnalyticsModal() {
+                const hist = getLS('mgb_analytics_history', []); if(hist.length === 0) return alert('Нет данных / No data yet');
+                const last = hist[0]; let html = `<p><b>Студент:</b> ${last.studentName} | <b>Очки:</b> ${last.totalScore} | <b>Точность:</b> ${last.accuracy}%</p>`;
+                let hard = []; for(let k in last.pairs) { if(last.pairs[k].mistakes > 0) hard.push(last.pairs[k]); } hard.sort((a,b)=>b.mistakes - a.mistakes);
+                if(hard.length > 0) { html += `<h4>${i18n[currentLang].analytics_hard}</h4><ul>`; hard.slice(0,3).forEach(h => { const p = this.state.pairs.find(x=>x.id===h.pairId); if(p) html += `<li>${p.item1.content.substring(0,20).replace(/<[^>]+>/g,'')} - ${h.mistakes} ошибок</li>`; }); html += `</ul>`; }
+                let timeSum = 0, timeCount = 0; for(let k in last.pairs) { if(last.pairs[k].timeTotalMs > 0) { timeSum += last.pairs[k].timeTotalMs; timeCount++; } }
+                if(timeCount > 0) html += `<p><b>${i18n[currentLang].analytics_avg_time}</b> ${Math.round(timeSum/timeCount/1000)}s</p>`;
+                let recs = []; if(last.accuracy < 70) recs.push('Повторите сложные слова'); if(hard.some(h=>h.distractorErr > 0)) recs.push('Будьте внимательны с ловушками!'); if(last.accuracy === 100) recs.push('Можно усложнить уровень');
+                if(recs.length > 0) html += `<p><b>${i18n[currentLang].analytics_recommend}</b><br>${recs.join('<br>')}</p>`;
+                document.getElementById('analytics-summary').innerHTML = html; document.getElementById('analytics-fb-container').style.display = 'block'; this.feedbackScreen.classList.add('active'); document.getElementById('score-container').style.display = 'none';
+            }
+            exportAnalytics(type) {
+                const hist = getLS('mgb_analytics_history', []); if(hist.length===0) return alert('No data');
+                if(type==='json') this.downloadFile("data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(hist,null,2)), "analytics.json");
+                else { let csv = "SessionId,Date,Student,Mode,Score,Accuracy,TimeSpent\n"; hist.forEach(h => csv += `${h.sessionId},${h.date},${h.studentName},${h.gameMode},${h.totalScore},${h.accuracy},${h.timeSpent}\n`); this.downloadFile("data:text/csv;charset=utf-8," + encodeURIComponent(csv), "analytics.csv"); }
+            }
+
+            generateShareCode() { try { const code = "MGB5:" + encodeURIComponent(JSON.stringify(this.state)); document.getElementById('share-code-area').value = code; if(code.length > 3000) alert(i18n[currentLang].share_too_large); } catch(e) { alert('Error generating code'); } }
+            importShareCode() {
+                const code = document.getElementById('import-code-area').value.trim(); if(!code.startsWith('MGB5:')) return alert('Invalid code prefix');
+                try { const parsed = JSON.parse(decodeURIComponent(code.substring(5))); if(parsed.settings && parsed.pairs) { this.state = parsed; this.state.distractors = parsed.distractors || []; this.applyVisualSettings(); this.renderCanvas(); this.updateDistTotal(); alert('Game loaded!'); } } catch(e) { alert('Error parsing code'); }
+            }
+
+            spinWheel() {
+                if(this.activePairs.length === 0) return; const anim = document.getElementById('wheel-spin-anim'); anim.style.transition = 'none'; anim.style.transform = 'rotate(0deg)';
+                setTimeout(() => { anim.style.transition = 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)'; anim.style.transform = 'rotate(' + (360 * 5 + Math.random() * 360) + 'deg)'; }, 50);
+                setTimeout(() => {
+                    const p = this.activePairs[Math.floor(Math.random()*this.activePairs.length)]; const txt = p.item2.content.replace(/<[^>]+>/g,'').trim() || p.item1.content.replace(/<[^>]+>/g,'').trim();
+                    document.getElementById('wheel-result-txt').innerHTML = this.state.settings.wheelShow ? `${p.item1.content} = ${p.item2.content}` : p.item1.content;
+                    let prompt = ""; if(this.state.settings.wheelTask === 'say_word') prompt = "Say the word loudly!"; if(this.state.settings.wheelTask === 'say_sentence') prompt = "Make a sentence with it!"; if(this.state.settings.wheelTask === 'translate') prompt = "Translate it!"; if(this.state.settings.wheelTask === 'explain') prompt = "Explain it in English!";
+                    document.getElementById('wheel-task-txt').textContent = prompt;
+                    if(this.state.settings.wheelSpeak && txt) { const utter = new SpeechSynthesisUtterance(txt); if(this.state.settings.speechLang && this.state.settings.speechLang !== 'auto') utter.lang = this.state.settings.speechLang; speechSynthesis.speak(utter); }
+                }, 3000);
+            }
+
+            startStudentGame() {
+                const n = document.getElementById('cr-name').value || 'Student Game'; const i1 = document.getElementById('cr-item1').value.split('\n').map(s=>s.trim()).filter(s=>s.length>0); const i2 = document.getElementById('cr-item2').value.split('\n').map(s=>s.trim()).filter(s=>s.length>0); const ex = document.getElementById('cr-examples').value.split('\n').map(s=>s.trim()).filter(s=>s.length>0); const ds = document.getElementById('cr-distractors').value.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+                const limit = Math.min(i1.length, i2.length, this.state.settings.creatorMax || 10); if(limit === 0) return alert('No pairs entered!');
+                this.studentTempState = JSON.parse(JSON.stringify(this.state)); 
+                this.state.settings.texts.startTitle = n; this.state.pairs = []; this.state.distractors = [];
+                for(let i=0; i<limit; i++) this.state.pairs.push({ id: 'p_stud_'+i, item1: { content: i1[i], x: 50+(i%5)*15, y: 50 }, item2: { content: i2[i], x: 300+(i%5)*15, y: 50 }, example: ex[i]||null });
+                ds.forEach((d,i) => this.state.distractors.push({ id: 'd_stud_'+i, content: d, x: 150, y: 150 }));
+                document.getElementById('creator-modal').classList.remove('active'); this.setMode('play');
+            }
+            downloadStudentGame() { if(!this.studentTempState) return alert('Start game first to compile it'); this.exportJSON(); }
+            importStudentGame(e) {
+                const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+                reader.onload = (ev) => { try { const parsed = JSON.parse(ev.target.result); if(parsed.state) { this.state = parsed.state; this.applyVisualSettings(); this.renderCanvas(); document.getElementById('creator-modal').classList.remove('active'); alert('Loaded!'); } } catch(err) { alert('Error'); } }; reader.readAsText(file); e.target.value = '';
+            }
+
+            generateCertificate() {
+                const c = document.createElement('canvas'); c.width = 800; c.height = 600; const ctx = c.getContext('2d');
+                ctx.fillStyle = '#f0f8ff'; ctx.fillRect(0,0,800,600); ctx.strokeStyle = '#ff7675'; ctx.lineWidth = 16; ctx.strokeRect(20,20,760,560); ctx.strokeStyle = '#fdcb6e'; ctx.lineWidth = 6; ctx.strokeRect(32,32,736,536);
+                ctx.fillStyle = '#2d3436'; ctx.textAlign = 'center'; ctx.font = '900 50px sans-serif'; ctx.fillText(i18n[currentLang].cert_title, 400, 130);
+                ctx.font = '700 24px sans-serif'; ctx.fillStyle = '#636e72'; ctx.fillText(i18n[currentLang].cert_desc, 400, 180);
+                ctx.font = 'italic 900 42px sans-serif'; ctx.fillStyle = '#00cec9'; ctx.fillText(document.getElementById('student-name-input').value.trim() || 'Ученик/Student', 400, 280);
+                const sText = this.state.settings.duelEnabled ? `${i18n[currentLang].ui_score_res} ${Math.max(this.duelScoreP1, this.duelScoreP2)}` : `${i18n[currentLang].ui_score_res} ${this.score}`;
+                ctx.fillStyle = '#2d3436'; ctx.font = '800 26px sans-serif'; ctx.fillText(sText, 400, 370); ctx.fillText(i18n[currentLang].ui_acc + ' ' + document.getElementById('feedback-accuracy').textContent + '%', 400, 420);
+                ctx.font = '600 18px sans-serif'; ctx.fillStyle = '#b2bec3'; ctx.fillText(i18n[currentLang].cert_date + ' ' + new Date().toLocaleDateString(), 400, 520);
+                const a = document.createElement('a'); a.download = 'certificate.png'; a.href = c.toDataURL('image/png'); a.click();
+            }
+exportJSON() { 
+                const d = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({lang: currentLang, state: this.state}, null, 2)); 
+                this.downloadFile(d, 'game_state.json'); 
+            }
+            
+            exportStandaloneHTML() { 
+                const html = this.generateStandaloneHTMLContent(); 
+                this.downloadFile("data:text/html;charset=utf-8," + encodeURIComponent(html), 'matching_game_player.html'); 
+            }
+            
+            exportIframe() { 
+                prompt(i18n[currentLang].exp_ifr +":", `<iframe srcdoc="${this.generateStandaloneHTMLContent().replace(/"/g, '&quot;')}" width="100%" height="600px" frameborder="0" allowfullscreen></iframe>`); 
+            }
+            
+            downloadFile(dataStr, filename) { 
+                const a = document.createElement('a'); a.href = dataStr; a.download = filename; 
+                document.body.appendChild(a); a.click(); a.remove(); 
+            }
+
+            generateStandaloneHTMLContent() {
+                const langData = JSON.stringify(i18n[currentLang]);
+                const stateData = JSON.stringify(this.state);
+                return `<!DOCTYPE html>
+<html lang="${currentLang}">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${this.state.settings.texts.startTitle}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #ff7675; --error: #ff4757; --item-font: ${this.state.settings.visuals.font}; --item-color: ${this.state.settings.visuals.color}; --item-bg: ${this.state.settings.visuals.bgTransparent ? 'transparent' : this.state.settings.visuals.bg}; --accent: #fdcb6e; --secondary: #00cec9;}
+        body { margin: 0; font-family: 'Nunito', sans-serif; background: #f0f8ff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .header { background: #fff; padding: 15px 25px; font-size: 22px; font-weight: 800; border-bottom: 4px solid var(--accent); display: flex; justify-content: space-between; align-items:center; color: #2d3436; }
+        #game-canvas { flex: 1; position: relative; background: #fff; border-radius: 20px; margin: 15px; border: 4px dashed #b2bec3; box-shadow: inset 0 4px 6px rgba(0,0,0,0.02); transition: border-color 0.3s, box-shadow 0.3s;}
+        #game-canvas.adaptive-active { border-color: var(--accent) !important; box-shadow: inset 0 0 20px rgba(253, 203, 110, 0.3); }
+        .game-item { position: absolute; padding: 12px 24px; border: 3px solid var(--primary); border-radius: 12px; cursor: grab; user-select: none; touch-action: none; font-weight: 800; box-shadow: 0 4px 0 rgba(0,0,0,0.1); transition: transform 0.1s, opacity 0.5s; text-align: center; color: var(--item-color); background: var(--item-bg); font-family: var(--item-font);}
+        .game-item img { max-width: 80px; max-height: 80px; object-fit: contain; pointer-events: none; border-radius: 8px;}
+        .game-item:active { transform: scale(1.05) translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0.1); z-index: 100; cursor: grabbing; } .game-item.matched { opacity: 0; pointer-events: none; }
+        .game-item.distractor { border: 3px dashed #e17055; }
+        .game-item.distractor::after { content: "?"; position: absolute; top: -10px; right: -10px; background: #e17055; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; font-family: 'Nunito', sans-serif;}
+        .shake { animation: shakeAnim 0.4s cubic-bezier(.36,.07,.19,.97) both; } @keyframes shakeAnim { 10%, 90% { transform: translateX(-3px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+        .flash { animation: flashAnim 0.5s ease-out; } @keyframes flashAnim { 0% { background-color: var(--primary); color: white; box-shadow: 0 0 20px var(--primary); transform: scale(1.1); } 100% { background-color: var(--item-bg); box-shadow: 0 4px 0 rgba(0,0,0,0.1); transform: scale(1); } }
+        .floating-score { position: absolute; font-size: 26px; font-weight: 900; animation: floatUp 1.2s ease-out forwards; z-index: 1000; pointer-events: none; }
+        .success { color: var(--primary); text-shadow: 0 2px 4px rgba(0,0,0,0.2); } .error { color: var(--error); }
+        .combo-3 { color: #FFB300; text-shadow: 0 3px 6px rgba(0,0,0,0.3); font-size: 32px; } .combo-5 { color: #9C27B0; text-shadow: 0 0 15px #E1BEE7; font-size: 40px; }
+        .floating-score.context-example { background: #f1f2f6; padding: 8px 12px; border-radius: 8px; border: 1px solid #dfe6e9; font-size: 14px; font-style: italic; color: #636e72; font-weight: 700; text-shadow: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: contextFade 3.5s forwards; max-width: 250px; text-align: center; line-height: 1.3;}
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
+        @keyframes contextFade { 0% { opacity: 0; transform: translateY(15px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-15px); } }
+        .hint-cloud { position: absolute; bottom: 115%; left: 50%; transform: translateX(-50%); background: white; border: 2px solid var(--secondary); border-radius: 10px; padding: 6px 12px; font-size: 13px; font-weight: 800; color: #2d3436; box-shadow: 0 4px 10px rgba(0,0,0,0.15); white-space: nowrap; pointer-events: none; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 105; }
+        .hint-cloud::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: var(--secondary) transparent transparent transparent; }
+        @keyframes popIn { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+        .adaptive-toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #2d3436; padding: 12px 25px; border-radius: 20px; font-weight: 800; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); z-index: 1500; pointer-events: none; animation: floatDownFade 3s forwards; }
+        @keyframes floatDownFade { 0% { top: -50px; opacity: 0; } 10% { top: 20px; opacity: 1; } 90% { top: 20px; opacity: 1; } 100% { top: -50px; opacity: 0; } }
+        .time-warning { color: var(--error); animation: pulse 1s infinite; } @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 248, 255, 0.95); backdrop-filter: blur(5px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; display: none; text-align: center; padding: 20px; box-sizing: border-box;}
+        .overlay.active { display: flex; } .overlay h1 { color: var(--primary); font-size: 46px; margin-bottom: 10px; font-weight: 900; text-shadow: 0 3px 0 #ffeaa7;} .overlay p { font-size: 20px; color: #2d3436; max-width: 600px; margin-bottom: 30px; font-weight: 700;}
+        .overlay input, .overlay textarea { font-size: 18px; padding: 12px; width: 280px; text-align: center; margin-bottom: 20px; border: 2px solid #dfe6e9; border-radius: 15px; font-family: 'Nunito', sans-serif; font-weight: 700;}
+        .overlay button { font-size: 22px; padding: 15px 40px; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; transition: all 0.1s; font-family: 'Nunito', sans-serif; font-weight: 800; box-shadow: 0 6px 0 #d63031; text-transform: uppercase;} .overlay button:active { transform: translateY(6px); box-shadow: 0 0 0 #d63031; }
+        .btn-gold { background: #fdcb6e !important; color: #2d3436 !important; box-shadow: 0 6px 0 #e1b12c !important;} .btn-gold:active { box-shadow: 0 0 0 #e1b12c !important; }
+        .btn-secondary { background: #00cec9 !important; box-shadow: 0 6px 0 #01a3a4 !important;} .btn-secondary:active { box-shadow: 0 0 0 #01a3a4 !important; }
+        .btn-error { background: #ff4757 !important; box-shadow: 0 6px 0 #c23616 !important;} .btn-error:active { box-shadow: 0 0 0 #c23616 !important; }
+        .teacher-code-box { background: #eef7ff; padding: 10px 20px; border-radius: 12px; border: 2px dashed #0984e3; margin-top: 15px; font-weight: 800; color: #0984e3; }
+        .mistakes-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-height: 250px; overflow-y: auto; width: 100%; max-width: 700px; padding: 10px; margin: 15px 0;}
+        .mistake-card { background: #ffffff; border: 2px solid #ff7675; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; font-weight: 800; color: #2d3436; box-shadow: 0 4px 0 rgba(255,118,117,0.2); font-size: 15px;}
+        .mistake-arrow { color: #ff7675; font-size: 18px; } .mistake-card img { max-width: 40px; max-height: 40px; border-radius: 6px; }
+        .face-down { background: var(--secondary) !important; color: transparent !important; } .face-down img { opacity: 0; }
+        .heart { color: var(--error); font-size: 24px; margin: 0 2px; } .heart.broken { color: #b2bec3; opacity: 0.5; } .heart.warning { animation: pulse 0.5s infinite; }
+        .chest-icon { font-size: 40px; cursor: pointer; transition: transform 0.2s; text-align: center; } .chest-icon.opening { animation: shakeAnim 0.5s infinite; } .chest-icon.opened { opacity: 0.5; cursor: default; }
+        .wheel-modal { background: white; padding: 30px; border-radius: 20px; text-align: center; } .wheel-spin-anim { display:inline-block; transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        .duel-ui { display: flex; gap: 15px; background: #f8f9fa; padding: 5px 15px; border-radius: 10px; } .duel-player { font-weight: bold; opacity: 0.5; padding: 5px 10px; border-radius: 5px; color: #2d3436; transition: 0.3s; } .active-turn { opacity: 1; background: var(--primary); color: white; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; font-weight: bold; color: #2d3436;} .leaderboard-item.highlight { background: #fffdf5; color: var(--primary); border-radius: 5px;}
+        .analytics-summary { background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: left; color: #2d3436; font-size: 14px; width: 100%; box-sizing: border-box;}
+        .copyright-notice { text-align: center; font-size: 13px; color: #b2bec3; font-weight: 700; padding-bottom: 10px; letter-spacing: 0.5px;}
+    </style>
+</head>
+<body>
+    <div id="start-screen" class="overlay active">
+        <h1>${this.state.settings.texts.startTitle}</h1><p>${this.state.settings.texts.startSlogan}</p>
+        <input type="text" id="stud-name" placeholder="">
+        <button onclick="startGame()" id="btn-start"></button>
+    </div>
+    <div class="header" id="game-header" style="visibility:hidden;">
+        <div style="display:flex; gap:15px; align-items: center;">
+            <div id="duel-ui" class="duel-ui" style="display:none;">
+                <div id="duel-p1-ui" class="duel-player"><span id="duel-n1"></span>: <span id="duel-s1">0</span></div>
+                <div id="duel-p2-ui" class="duel-player"><span id="duel-n2"></span>: <span id="duel-s2">0</span></div>
+                <div id="duel-turn-ui" style="font-weight:bold; color:var(--primary); align-self:center; font-size:14px;"></div>
+            </div>
+            <div id="single-score-ui" style="display:flex; gap:15px; align-items:center;">
+                <span id="t-score"></span> <span id="score" style="color:var(--primary); font-size: 26px;">0</span> 
+            </div>
+            <div id="hearts-container" style="display:none; gap:2px;"></div>
+            <div id="combo-ui" style="color:#FFB300; display:none; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Combo x<span id="c-m">2</span>!</div>
+        </div>
+        <div><span id="t-time"></span> <span id="timer" style="color:#00cec9; font-size: 26px;">0</span></div>
+    </div>
+    <div id="game-canvas"></div>
+    <div class="copyright-notice" id="t-copy"></div>
+    
+    <div id="feedback-screen" class="overlay">
+        <h1 id="fb-title"></h1>
+        <div id="score-container">
+            <h2><span id="t-fb-score"></span> <span id="fb-score" style="color:var(--primary); font-size:36px;">0</span> | <span id="t-fb-acc"></span> <span id="fb-accuracy" style="color:#00cec9;">100</span>%</h2>
+        </div>
+        <div id="duel-fb-container" style="display:none; text-align:center; margin-bottom:15px; background:#fffdf5; padding:15px; border-radius:12px; border:2px solid var(--accent); width:80%;">
+            <h2 id="duel-fb-winner" style="color:var(--primary); margin:0 0 10px 0;"></h2>
+            <div style="display:flex; justify-content:space-around; font-size:18px; font-weight:bold; color:#2d3436;">
+                <div><span id="duel-fb-n1"></span>: <span id="duel-fb-s1" style="color:var(--primary);">0</span></div>
+                <div><span id="duel-fb-n2"></span>: <span id="duel-fb-s2" style="color:var(--secondary);">0</span></div>
+            </div>
+        </div>
+        
+        <div class="teacher-code-box"><span id="t-fb-tc"></span> <span id="t-code" style="letter-spacing: 2px;"></span></div>
+        <div id="chest-ui" style="display:none; margin: 15px 0; display:flex; flex-direction:column; align-items:center;">
+            <div id="chest-btn" class="chest-icon">🎁</div><button id="open-chest-btn" class="btn-gold" style="margin-top:10px;">Открыть сундук!</button><div id="chest-result" style="font-weight:bold; color:var(--accent); font-size:20px; margin-top:10px; min-height:24px;"></div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; width:100%; max-width:800px;">
+            <div id="leaderboard-fb-container" style="display:none; margin-top:15px; flex:1; min-width:250px; text-align:left; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+                <h3 style="margin:0 0 10px 0; color:#2d3436; border-bottom:2px solid #dfe6e9; padding-bottom:5px;" id="t-leader">Топ результатов</h3>
+                <div id="leaderboard-list"></div>
+            </div>
+            <div id="analytics-fb-container" style="display:none; margin-top:15px; flex:1; min-width:250px;">
+                <div id="analytics-summary" class="analytics-summary"></div>
+            </div>
+        </div>
+
+        <div id="fb-mistakes-container" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
+            <div class="mistakes-grid" id="fb-mistakes-list"></div>
+            <button class="btn-secondary" onclick="startRetryGame()" style="margin-bottom: 10px; font-size: 16px; padding: 12px 25px;" id="btn-retry"></button>
+        </div>
+        
+        <button id="btn-open-wheel" class="btn-secondary" style="margin-top:15px; display:none;" onclick="document.getElementById('wheel-modal').classList.add('active')">🎡 Колесо</button>
+
+        <div style="display:flex; gap:15px; margin-top:25px;">
+            <button onclick="location.reload()" style="font-size: 18px; padding: 12px 25px;" id="btn-restart"></button>
+            <button class="btn-gold" onclick="getCert()" style="font-size: 18px; padding: 12px 25px;" id="btn-cert"></button>
+        </div>
+    </div>
+
+    <!-- Модалка колеса фортуны -->
+    <div id="wheel-modal" class="overlay">
+        <div class="wheel-modal">
+            <h2 style="margin-top:0;" id="t-wheel-title">Колесо Фортуны</h2>
+            <div style="font-size: 80px; margin:20px 0;" id="wheel-spin-anim">🎡</div>
+            <button id="wheel-spin-btn" class="btn-gold" style="font-size:20px; padding:15px 30px;" onclick="spinWheel()">Крутить!</button>
+            <div id="wheel-result-content" style="min-height:80px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <h3 id="wheel-result-txt" style="margin:10px 0; color:var(--primary); font-size:24px;"></h3>
+                <p id="wheel-task-txt" style="font-weight:bold; font-size:18px; color:#2d3436; margin:0;"></p>
+            </div>
+            <button onclick="document.getElementById('wheel-modal').classList.remove('active')" class="btn-secondary" style="margin-top:15px;" id="t-wheel-done">Готово</button>
+        </div>
+    </div>
+
+    <script>
+        function getLS(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e){ return def; } }
+        function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+        
+        const ACH_DEFS = [ {id:'first_win', icon:'🌟', hint:'Первая победа'}, {id:'sniper', icon:'🎯', hint:'100% точность'}, {id:'lightning', icon:'⚡', hint:'Игра за <30 сек'}, {id:'combo_master', icon:'🔥', hint:'Combo x5'}, {id:'trap_catcher', icon:'🎭', hint:'Без ошибок на ловушках'}, {id:'brainiac', icon:'🧠', hint:'Memory пройден'}, {id:'audio_ninja', icon:'🎧', hint:'Listen пройден'}, {id:'flawless', icon:'💎', hint:'3 игры без ошибок'}, {id:'champion', icon:'👑', hint:'1000+ баллов'} ];
+        
+        function launchConfetti() { const canvas = document.createElement('canvas'); canvas.style.position = 'fixed'; canvas.style.top = '0'; canvas.style.left = '0'; canvas.style.width = '100%'; canvas.style.height = '100%'; canvas.style.pointerEvents = 'none'; canvas.style.zIndex = '9999'; document.body.appendChild(canvas); const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight; const particles = []; const colors = ['#ff7675', '#00cec9', '#fdcb6e', '#a29bfe']; for(let i=0; i<100; i++) particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, r: Math.random() * 6 + 4, dx: Math.random() * 4 - 2, dy: Math.random() * 3 + 2, color: colors[Math.floor(Math.random() * colors.length)], tilt: Math.random() * 10 }); let frame; let start = Date.now(); function render() { ctx.clearRect(0,0, canvas.width, canvas.height); let alive = false; particles.forEach(p => { p.y += p.dy; p.x += p.dx; p.tilt += 0.1; if(p.y < canvas.height) alive = true; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.tilt)*10, p.y, p.r, 0, Math.PI*2); ctx.fillStyle = p.color; ctx.fill(); }); if(Date.now() - start < 3000 && alive) frame = requestAnimationFrame(render); else { canvas.remove(); cancelAnimationFrame(frame); } } render(); }
+
+        const state = ${stateData};
+        const i18n = ${langData};
+        
+        document.getElementById('stud-name').placeholder = i18n.ui_name_ph; document.getElementById('btn-start').textContent = i18n.ui_start;
+        document.getElementById('t-score').textContent = i18n.ui_score; document.getElementById('t-time').textContent = i18n.ui_time;
+        document.getElementById('t-copy').textContent = i18n.copyright; document.getElementById('t-fb-score').textContent = i18n.ui_score_res;
+        document.getElementById('t-fb-acc').textContent = i18n.ui_acc; document.getElementById('t-fb-tc').textContent = i18n.ui_tcode;
+        document.getElementById('btn-retry').textContent = i18n.ui_retry; document.getElementById('btn-restart').textContent = i18n.restart || 'Restart';
+        document.getElementById('btn-cert').textContent = i18n.ui_cert;
+        document.getElementById('t-leader').textContent = i18n.leader_top || 'Top results';
+        document.getElementById('t-wheel-title').textContent = i18n.wheel_title || 'Wheel';
+        document.getElementById('t-wheel-done').textContent = i18n.wheel_done || 'Done';
+        document.getElementById('btn-open-wheel').textContent = i18n.wheel_btn || 'Wheel';
+
+        const canvas = document.getElementById('game-canvas');
+        if(state.settings.visuals.bgImageBase64) { canvas.style.backgroundImage = 'url(' + state.settings.visuals.bgImageBase64 + ')'; canvas.style.backgroundSize = 'cover'; canvas.style.backgroundPosition = 'center'; }
+        
+        let score = 0, timeLeft = 0, timerInterval = null, draggedItem = null, comboCount = 0;
+        let mistakes = new Set(), distractorMistakes = [], activePairs = [];
+        let consecutiveMistakes = 0, isAdaptiveActive = false, pairMistakes = new Map();
+        let sessionAnalytics = null, dragStartTime = 0;
+        let duelTurn = 1, duelScoreP1 = 0, duelScoreP2 = 0;
+        
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const bgAudio = new Audio(); if(state.settings.audio.bgMusicBase64){ bgAudio.src = state.settings.audio.bgMusicBase64; bgAudio.loop = true; }
+        
+        function startGame(pairs = state.pairs, distractors = (state.distractors || [])) {
+            document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
+            document.querySelector('.header').style.visibility = 'visible';
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            if(state.settings.audio.bgMusicBase64) bgAudio.play().catch(e=>{});
+            
+            activePairs = pairs; mistakes.clear(); distractorMistakes = []; score = 0; comboCount = 0; timeLeft = state.settings.timeLimit || 60;
+            consecutiveMistakes = 0; isAdaptiveActive = false; canvas.classList.remove('adaptive-active'); pairMistakes.clear();
+            
+            sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('stud-name').value || 'Student', gameMode: state.settings.gameMode, pairs: {} };
+            activePairs.forEach(p => { sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
+            
+            const isDuel = state.settings.duelEnabled && state.settings.gameMode === 'match';
+            document.getElementById('single-score-ui').style.display = isDuel ? 'none' : 'flex';
+            document.getElementById('duel-ui').style.display = isDuel ? 'flex' : 'none';
+            if(isDuel) {
+                duelTurn = 1; duelScoreP1 = 0; duelScoreP2 = 0;
+                document.getElementById('duel-n1').textContent = state.settings.duelP1 || i18n.duel_p1;
+                document.getElementById('duel-n2').textContent = state.settings.duelP2 || i18n.duel_p2;
+                updateDuelUI();
+            } else { document.getElementById('score').textContent = score; }
+            
+            updateCombo(); clearInterval(timerInterval);
+            timerInterval = setInterval(() => { timeLeft--; document.getElementById('timer').textContent = timeLeft; if(timeLeft<=10) document.getElementById('timer').classList.add('time-warning'); else document.getElementById('timer').classList.remove('time-warning'); if(timeLeft <= 0) endGame(false); }, 1000);
+            
+            canvas.innerHTML = '';
+            activePairs.forEach(pair => { [pair.item1, pair.item2].forEach((d, i) => {
+                const el = document.createElement('div'); el.className = 'game-item'; el.innerHTML = d.content;
+                if(state.settings.gameMode === 'memory') el.classList.add('face-down');
+                el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; el.dataset.pairId = pair.id; el.dataset.type = i===0?'1':'2'; canvas.appendChild(el);
+            });});
+            distractors.forEach(d => { const el = document.createElement('div'); el.className = 'game-item distractor'; el.innerHTML = d.content; if(state.settings.gameMode === 'memory') el.classList.add('face-down'); el.dataset.id = d.id; el.dataset.type = 'd'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; canvas.appendChild(el); });
+        }
+        function startRetryGame() { const arr = Array.from(mistakes); startGame(state.pairs.filter(p => arr.includes(p.id)), []); }
+        function updateCombo() { const ui = document.getElementById('combo-ui'); if(comboCount>=3){ ui.style.display='block'; document.getElementById('c-m').textContent=comboCount>=5?'3':'2'; ui.style.color=comboCount>=5?'#9C27B0':'#FFB300'; } else ui.style.display='none'; }
+        function showToast(msg) { const toast = document.createElement('div'); toast.className = 'adaptive-toast'; toast.textContent = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        function updateDuelUI() {
+            document.getElementById('duel-s1').textContent = duelScoreP1; document.getElementById('duel-s2').textContent = duelScoreP2;
+            document.getElementById('duel-p1-ui').className = \`duel-player \${duelTurn === 1 ? 'active-turn' : ''}\`;
+            document.getElementById('duel-p2-ui').className = \`duel-player \${duelTurn === 2 ? 'active-turn' : ''}\`;
+            const n = duelTurn === 1 ? (state.settings.duelP1 || i18n.duel_p1) : (state.settings.duelP2 || i18n.duel_p2);
+            document.getElementById('duel-turn-ui').textContent = \`\${i18n.duel_turn || 'Turn:'} \${n}\`;
+        }
+
+        canvas.addEventListener('pointerdown', e => { const t = e.target.closest('.game-item'); if(!t) return; draggedItem = { el: t, startX: e.clientX, startY: e.clientY, initialLeft: parseFloat(t.style.left||0), initialTop: parseFloat(t.style.top||0) }; if(state.settings.gameMode === 'memory' && t.classList.contains('face-down')) t.classList.remove('face-down'); dragStartTime = Date.now(); t.setPointerCapture(e.pointerId); t.style.zIndex = 1000; });
+        document.addEventListener('pointermove', e => { if(!draggedItem) return; draggedItem.el.style.left = draggedItem.initialLeft + (e.clientX - draggedItem.startX) + 'px'; draggedItem.el.style.top = draggedItem.initialTop + (e.clientY - draggedItem.startY) + 'px'; });
+        document.addEventListener('pointerup', e => {
+            if(!draggedItem) return; const el = draggedItem.el; el.style.zIndex = ''; el.releasePointerCapture(e.pointerId); const rT = Date.now() - dragStartTime;
+            const all = Array.from(canvas.querySelectorAll('.game-item:not(.matched)'));
+            const drop = all.find(item => { if(item===el) return false; const r = item.getBoundingClientRect(); return e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom; });
+            
+            if(drop) {
+                const isDuel = state.settings.duelEnabled && state.settings.gameMode === 'match';
+                const isDistractor = drop.dataset.type === 'd' || el.dataset.type === 'd';
+                let actualPenalty = isAdaptiveActive ? Math.ceil(state.settings.penalty / 2) : state.settings.penalty;
+                const pid = el.dataset.type === 'd' ? drop.dataset.pairId : el.dataset.pairId;
+                if(sessionAnalytics && sessionAnalytics.pairs[pid]) { sessionAnalytics.pairs[pid].attempts++; sessionAnalytics.pairs[pid].timeTotalMs += rT; }
+
+                if (isDistractor) {
+                    if(sessionAnalytics && pid && sessionAnalytics.pairs[pid]) { sessionAnalytics.pairs[pid].distractorErr++; sessionAnalytics.pairs[pid].mistakes++; }
+                    distractorMistakes.push({ drag: el.innerHTML, drop: drop.innerHTML });
+                    comboCount = 0; updateCombo();
+                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; }
+                    if(navigator.vibrate) navigator.vibrate(200);
+                    showFloat('-' + actualPenalty + ' 🎭', e.clientX, e.clientY-50, 'error');
+                    el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); returnItem(el);
+                    handleMistakeLogic();
+                } 
+                else if(drop.dataset.pairId === el.dataset.pairId) {
+                    consecutiveMistakes = 0; if (isAdaptiveActive) { isAdaptiveActive = false; canvas.classList.remove('adaptive-active'); }
+                    comboCount++; updateCombo(); let mult = comboCount>=5?3:(comboCount>=3?2:1); let earned = state.settings.reward * mult;
+                    if(isDuel) { if(duelTurn === 1) duelScoreP1 += earned; else duelScoreP2 += earned; updateDuelUI(); } else { score += earned; }
+                    showFloat('+' + earned, e.clientX, e.clientY-50, comboCount>=5?'combo-5':(comboCount>=3?'combo-3':'success'));
+                    const p = state.pairs.find(x => x.id === el.dataset.pairId);
+                    if (p && p.example) showFloat(p.example, e.clientX, e.clientY + 20, 'context-example');
+                    if(navigator.vibrate) navigator.vibrate([50,30,50]);
+                    
+                    if(state.settings.speechEnabled){ 
+                        const t = (el.dataset.type==='2'?el:drop).innerHTML.replace(/<[^>]*>?/gm,'').trim(); 
+                        if(t) { const utter = new SpeechSynthesisUtterance(t); if(state.settings.speechLang && state.settings.speechLang !== 'auto') utter.lang = state.settings.speechLang; speechSynthesis.speak(utter); }
+                    }
+                    drop.classList.add('flash'); el.style.opacity = '0';
+                    setTimeout(() => { el.classList.add('matched'); drop.classList.add('matched'); drop.classList.remove('flash'); if(canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length===0) endGame(true); }, 400);
+                } else {
+                    if(sessionAnalytics && sessionAnalytics.pairs[pid]) sessionAnalytics.pairs[pid].mistakes++;
+                    mistakes.add(el.dataset.pairId); comboCount = 0; updateCombo();
+                    if(isDuel) { duelTurn = duelTurn === 1 ? 2 : 1; updateDuelUI(); } else { score -= actualPenalty; }
+                    showFloat('-' + actualPenalty, e.clientX, e.clientY-50, 'error');
+                    if(navigator.vibrate) navigator.vibrate(200);
+                    el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 400); returnItem(el);
+                    handleMistakeLogic(); handleHints(el, drop, el.dataset.pairId);
+                }
+                document.getElementById('score').textContent = score;
+            } else { if(state.settings.gameMode === 'memory') el.classList.add('face-down'); returnItem(el); }
+            draggedItem = null;
+        });
+
+        function handleMistakeLogic() {
+            if (state.settings.adaptiveMode) {
+                consecutiveMistakes++;
+                if (consecutiveMistakes >= state.settings.adaptiveThreshold && !isAdaptiveActive) {
+                    isAdaptiveActive = true; canvas.classList.add('adaptive-active'); timeLeft += 15; document.getElementById('timer').textContent = timeLeft;
+                    showToast(i18n.adaptive_msg);
+                }
+            }
+        }
+
+        function handleHints(draggedEl, dropTarget, pairId) {
+            if (!state.settings.hintsEnabled) return;
+            let mc = (pairMistakes.get(pairId) || 0) + 1; pairMistakes.set(pairId, mc);
+            const p = state.pairs.find(x => x.id === pairId); const answerItem = draggedEl.dataset.type === '1' ? p.item2 : p.item1;
+            const answerText = answerItem.content.replace(/<[^>]*>?/gm,'').trim();
+            let hintText = "";
+            if (!answerText) { hintText = mc === 1 ? "🖼️" : "🖼️👀"; } 
+            else {
+                if (mc === 1) hintText = \`\${i18n.hint_letter} \${answerText.charAt(0)}...\`;
+                else if (mc === 2) hintText = \`\${i18n.hint_translation} \${answerText}\`;
+                else if (mc >= 3) {
+                    hintText = \`\${i18n.hint_answer} \${answerText}\`;
+                    if (state.settings.speechEnabled) { const utter = new SpeechSynthesisUtterance(answerText); if(state.settings.speechLang && state.settings.speechLang !== 'auto') utter.lang = state.settings.speechLang; speechSynthesis.speak(utter); }
+                }
+            }
+            if (hintText) {
+                const existing = draggedEl.querySelector('.hint-cloud'); if (existing) existing.remove();
+                const cloud = document.createElement('div'); cloud.className = 'hint-cloud'; cloud.textContent = hintText; draggedEl.appendChild(cloud);
+            }
+        }
+
+        function returnItem(el) { 
+            let d; if (el.dataset.type === 'd') { d = (state.distractors || []).find(x => x.id === el.dataset.id); } else { const p = state.pairs.find(p => p.id === el.dataset.pairId); d = el.dataset.type === '1' ? p.item1 : p.item2; }
+            el.style.transition = 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; 
+            setTimeout(() => el.style.transition = 'transform 0.1s', 400); 
+        }
+        function showFloat(txt, x, y, type) { const f = document.createElement('div'); f.className = \`floating-score \${type}\`; f.textContent = txt; f.style.left = x + 'px'; f.style.top = y + 'px'; canvas.appendChild(f); setTimeout(() => f.remove(), type==='context-example' ? 3500 : 1200); }
+
+        function spinWheel() {
+            if(activePairs.length === 0) return;
+            const anim = document.getElementById('wheel-spin-anim'); anim.style.transition = 'none'; anim.style.transform = 'rotate(0deg)';
+            setTimeout(() => { anim.style.transition = 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)'; anim.style.transform = 'rotate(' + (360 * 5 + Math.random() * 360) + 'deg)'; }, 50);
+            setTimeout(() => {
+                const p = activePairs[Math.floor(Math.random()*activePairs.length)];
+                const txt = p.item2.content.replace(/<[^>]+>/g,'').trim() || p.item1.content.replace(/<[^>]+>/g,'').trim();
+                document.getElementById('wheel-result-txt').innerHTML = state.settings.wheelShow ? \`\${p.item1.content} = \${p.item2.content}\` : p.item1.content;
+                let prompt = "";
+                if(state.settings.wheelTask === 'say_word') prompt = "Say the word loudly!";
+                if(state.settings.wheelTask === 'say_sentence') prompt = "Make a sentence with it!";
+                if(state.settings.wheelTask === 'translate') prompt = "Translate it!";
+                if(state.settings.wheelTask === 'explain') prompt = "Explain it in English!";
+                document.getElementById('wheel-task-txt').textContent = prompt;
+                if(state.settings.wheelSpeak && txt) { const utter = new SpeechSynthesisUtterance(txt); if(state.settings.speechLang && state.settings.speechLang !== 'auto') utter.lang = state.settings.speechLang; speechSynthesis.speak(utter); }
+            }, 3000);
+        }
+
+        function endGame(isWin) {
+            clearInterval(timerInterval); bgAudio.pause();
+            if (isWin && state.settings.confettiEnabled) launchConfetti();
+            const isDuel = state.settings.duelEnabled && state.settings.gameMode === 'match';
+            
+            document.getElementById('fb-title').textContent = isWin ? i18n.msg_win : i18n.msg_lose; document.getElementById('fb-title').style.color = isWin ? "var(--primary)" : "var(--error)";
+            
+            let mistakesCount = mistakes.size + distractorMistakes.length;
+            const acc = activePairs.length>0 ? Math.max(0, Math.round(((activePairs.length - mistakesCount)/activePairs.length)*100)) : 100;
+            
+            if (isDuel) {
+                document.getElementById('score-container').style.display = 'none'; document.getElementById('duel-fb-container').style.display = 'block';
+                document.getElementById('duel-fb-n1').textContent = state.settings.duelP1 || i18n.duel_p1; document.getElementById('duel-fb-n2').textContent = state.settings.duelP2 || i18n.duel_p2;
+                document.getElementById('duel-fb-s1').textContent = duelScoreP1; document.getElementById('duel-fb-s2').textContent = duelScoreP2;
+                let winnerTxt = i18n.duel_draw;
+                if(duelScoreP1 > duelScoreP2) winnerTxt = \`\${i18n.duel_winner} \${state.settings.duelP1 || i18n.duel_p1}\`;
+                else if(duelScoreP2 > duelScoreP1) winnerTxt = \`\${i18n.duel_winner} \${state.settings.duelP2 || i18n.duel_p2}\`;
+                document.getElementById('duel-fb-winner').textContent = winnerTxt;
+            } else {
+                document.getElementById('score-container').style.display = 'block'; document.getElementById('duel-fb-container').style.display = 'none';
+                document.getElementById('fb-score').textContent = score; document.getElementById('fb-accuracy').textContent = acc;
+            }
+            
+            const mCode = Math.min(mistakesCount, 25); let sStr = Math.max(0, score).toString(16).padStart(3, '0').toUpperCase();
+            if(sStr.length > 3) sStr = sStr.substring(sStr.length - 3); document.getElementById('t-code').textContent = String.fromCharCode(65 + mCode) + sStr;
+            
+            const mCont = document.getElementById('fb-mistakes-container'); const mList = document.getElementById('fb-mistakes-list'); mList.innerHTML = '';
+            
+            if(mistakesCount > 0) { 
+                mCont.style.display = 'flex'; 
+                mistakes.forEach(id => { 
+                    const p = state.pairs.find(x=>x.id===id); 
+                    if(p) {
+                        const i1 = p.item1.content.includes('<img') ? p.item1.content : \`<span>\${p.item1.content}</span>\`;
+                        const i2 = p.item2.content.includes('<img') ? p.item2.content : \`<span>\${p.item2.content}</span>\`;
+                        mList.innerHTML += \`<div class="mistake-card">\${i1} <span class="mistake-arrow">➔</span> \${i2}</div>\`; 
+                    }
+                });
+                distractorMistakes.forEach(m => {
+                    const i1 = m.drag.includes('<img') ? m.drag : \`<span>\${m.drag}</span>\`;
+                    const i2 = m.drop.includes('<img') ? m.drop : \`<span>\${m.drop}</span>\`;
+                    mList.innerHTML += \`<div class="mistake-card">\${i1} <span class="mistake-arrow">➔ 🎭</span> \${i2}</div>\`;
+                });
+            } else mCont.style.display = 'none';
+
+            if (sessionAnalytics) {
+                sessionAnalytics.totalScore = isDuel ? Math.max(duelScoreP1, duelScoreP2) : score; sessionAnalytics.accuracy = acc; sessionAnalytics.timeSpent = (state.settings.timeLimit || 60) - timeLeft;
+                let hist = getLS('mgb_analytics_history', []); hist.unshift(sessionAnalytics); if(hist.length > 50) hist = hist.slice(0, 50); setLS('mgb_analytics_history', hist);
+            }
+
+            if (state.settings.leaderboardEnabled && !isDuel) {
+                let lb = getLS('mgb_leaderboard', []); lb.push({ name: document.getElementById('stud-name').value || 'Student', score: score, accuracy: acc, date: new Date().toLocaleDateString() });
+                lb.sort((a,b) => b.score - a.score); lb = lb.slice(0, 20); setLS('mgb_leaderboard', lb);
+                const c = document.getElementById('leaderboard-fb-container'); const list = document.getElementById('leaderboard-list'); list.innerHTML = '';
+                if(lb.length > 0) { c.style.display = 'block'; lb.slice(0,5).forEach((entry, i) => { list.innerHTML += \`<div class="leaderboard-item \${entry.score === score ? 'highlight':''}"><span style="color:#636e72;">#\${i+1}</span> \${entry.name} <span>\${entry.score} pts (\${entry.accuracy}%)</span></div>\`; }); } else c.style.display = 'none';
+            } else document.getElementById('leaderboard-fb-container').style.display = 'none';
+
+            if (state.settings.wheelEnabled && isWin && activePairs.length > 0) document.getElementById('btn-open-wheel').style.display = 'inline-block';
+            else document.getElementById('btn-open-wheel').style.display = 'none';
+            
+            document.getElementById('feedback-screen').classList.add('active');
+        }
+
+        function getCert() {
+            const c = document.createElement('canvas'); c.width = 800; c.height = 600; const ctx = c.getContext('2d');
+            ctx.fillStyle = '#f0f8ff'; ctx.fillRect(0,0,800,600); ctx.strokeStyle = '#ff7675'; ctx.lineWidth = 16; ctx.strokeRect(20,20,760,560); ctx.strokeStyle = '#fdcb6e'; ctx.lineWidth = 6; ctx.strokeRect(32,32,736,536);
+            ctx.fillStyle = '#2d3436'; ctx.textAlign = 'center'; ctx.font = '900 50px sans-serif'; ctx.fillText(i18n.cert_title, 400, 130);
+            ctx.font = '700 24px sans-serif'; ctx.fillStyle = '#636e72'; ctx.fillText(i18n.cert_desc, 400, 180);
+            ctx.font = 'italic 900 42px sans-serif'; ctx.fillStyle = '#00cec9'; ctx.fillText(document.getElementById('stud-name').value.trim() || 'Student', 400, 280);
+            const sText = state.settings.duelEnabled ? \`\${i18n.ui_score_res} \${Math.max(duelScoreP1, duelScoreP2)}\` : \`\${i18n.ui_score_res} \${score}\`;
+            ctx.fillStyle = '#2d3436'; ctx.font = '800 26px sans-serif'; ctx.fillText(sText, 400, 370); ctx.fillText(i18n.ui_acc + ' ' + document.getElementById('fb-accuracy').textContent + '%', 400, 420);
+            ctx.font = '600 18px sans-serif'; ctx.fillStyle = '#b2bec3'; ctx.fillText(i18n.cert_date + ' ' + new Date().toLocaleDateString(), 400, 520);
+            const a = document.createElement('a'); a.download = 'certificate.png'; a.href = c.toDataURL('image/png'); a.click();
+        }
+    <\/script>
+</body>
+</html>`;
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => window.gameBuilder = new MatchingGameBuilder());
+    </script>
+</body>
+</html>
