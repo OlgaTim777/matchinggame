@@ -6,7 +6,7 @@
     <title>Matching Game Builder - EdTech PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* ================= CSS СТИЛИ (Милый мультяшный дизайн) ================= */
+        /* ================= CSS СТИЛИ ================= */
         :root {
             --bg-color: #f0f8ff; --panel-bg: #ffffff; --border-color: #d1d8e0;
             --primary: #ff7675; --primary-hover: #d63031; --secondary: #00cec9; --accent: #fdcb6e; --error: #ff4757;
@@ -183,7 +183,7 @@
                         <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
                     </select>
                     <div class="bulk-upload-area">
-                        <textarea id="bulk-text-1" rows="2" placeholder="Слово 1\nСлово 2..."></textarea>
+                        <textarea id="bulk-text-1" rows="2" placeholder="Слово 1&#10;Слово 2..."></textarea>
                         <label class="img-btn" id="bulk-img-btn-1">🖼️ Выбрать картинки<input type="file" id="bulk-img-1" accept="image/*" multiple style="display:none;" onchange="updateFileCount('1')"></label>
                         <div class="file-count" id="count-1"></div>
                     </div>
@@ -194,12 +194,12 @@
                         <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
                     </select>
                     <div class="bulk-upload-area">
-                        <textarea id="bulk-text-2" rows="2" placeholder="Word 1\nWord 2..."></textarea>
+                        <textarea id="bulk-text-2" rows="2" placeholder="Word 1&#10;Word 2..."></textarea>
                         <label class="img-btn" id="bulk-img-btn-2">🖼️ Выбрать картинки<input type="file" id="bulk-img-2" accept="image/*" multiple style="display:none;" onchange="updateFileCount('2')"></label>
                         <div class="file-count" id="count-2"></div>
                     </div>
                 </label>
-                <label><span data-i18n="examples_title" style="color: #0984e3;">💬 Примеры (опционально):</span><textarea id="bulk-examples" rows="2" placeholder="I like apples.\nShe reads books."></textarea></label>
+                <label><span data-i18n="examples_title" style="color: #0984e3;">💬 Примеры (опционально):</span><textarea id="bulk-examples" rows="2" placeholder="I like apples.&#10;She reads books."></textarea></label>
                 <div class="row-2" style="margin-top: 5px;"><button class="btn-secondary" id="bulk-add-btn" data-i18n="bulk_add">Сгенерировать</button><button class="btn-error" id="clear-canvas-btn" data-i18n="bulk_clear">Очистить поле</button></div>
             </div>
 
@@ -211,7 +211,7 @@
                         <option value="img" data-i18n="bulk_img">Картинки (файлы)</option>
                     </select>
                     <div class="bulk-upload-area">
-                        <textarea id="bulk-text-dist" rows="2" placeholder="Ловушка 1\nЛовушка 2..."></textarea>
+                        <textarea id="bulk-text-dist" rows="2" placeholder="Ловушка 1&#10;Ловушка 2..."></textarea>
                         <label class="img-btn" id="bulk-img-btn-dist">🖼️ Выбрать картинки<input type="file" id="bulk-img-dist" accept="image/*" multiple style="display:none;" onchange="updateFileCount('dist')"></label>
                         <div class="file-count" id="count-dist"></div>
                     </div>
@@ -356,7 +356,6 @@
         </aside>
 
         <main class="canvas-wrapper">
-            <!-- ИСПРАВЛЕНИЕ 4: canvas-header используется как game-header для совместимости -->
             <header class="canvas-header" id="game-header-el">
                 <div id="game-stats" style="visibility: hidden; display: flex; gap: 20px; align-items: center; width:100%;">
                     
@@ -622,7 +621,9 @@
                         duelEnabled: false, duelP1: "Player 1", duelP2: "Player 2",
                         wheelEnabled: false, wheelTask: "say_sentence", wheelSpeak: true, wheelShow: false,
                         creatorEnabled: false, creatorMax: 10, leaderboardEnabled: false,
-                        heartsEnabled: true, heartsMax: 3, spacedEnabled: false
+                        heartsEnabled: true, heartsMax: 3, spacedEnabled: false,
+                        /* БАГ №5: Добавлено currentTheme */
+                        currentTheme: 'default'
                     },
                     pairs: [], distractors: []
                 };
@@ -633,12 +634,20 @@
                 this.duelTurn = 1; this.duelScoreP1 = 0; this.duelScoreP2 = 0;
                 this.sessionAnalytics = null; this.dragStartTime = 0;
                 this.heartsLeft = 0; this.flippedMemoryCards = []; this.memoryMoves = 0;
+                this.speedReserve = []; // ИСПРАВЛЕНИЕ: Добавлено свойство
 
                 this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 this.bgAudio = new Audio(); this.bgAudio.loop = true;
 
                 this.initDOM(); this.bindEvents(); this.loadTemplatesList();
                 this.applyVisualSettings(); this.renderCanvas(); setLanguage(currentLang); this.updateDistTotal();
+                
+                /* БАГ №9: updateTotalCoinsUI */
+                this.updateTotalCoinsUI();
+                /* БАГ №3: renderStreakUI() */
+                this.renderStreakUI();
+                /* БАГ №1: renderAchGrid() */
+                this.renderAchGrid();
             }
 
             initDOM() {
@@ -648,9 +657,97 @@
                 this.tplSelect = document.getElementById('template-select');
             }
 
+            /* БАГ №1: renderAchGrid() */
+            renderAchGrid() {
+                const unlocked = getLS('mgb_achievements', []);
+                const grid = document.getElementById('ach-grid-ui');
+                grid.innerHTML = '';
+                ACH_DEFS.forEach(a => {
+                    const isUnl = unlocked.includes(a.id);
+                    grid.innerHTML += `<div class="ach-badge ${isUnl ? 'unlocked' : ''}" title="${a.hint}">${a.icon}</div>`;
+                });
+            }
+
+            /* БАГ №2: checkAchievements() */
+            checkAchievements(isWin) {
+                if(!isWin) return [];
+                const unlocked = getLS('mgb_achievements', []);
+                const newly = [];
+                const flawless = getLS('mgb_flawless_streak', 0);
+                const cond = (id, check) => { if(check && !unlocked.includes(id)) { unlocked.push(id); newly.push(id); } };
+                cond('first_win', true);
+                cond('sniper', this.mistakes.size === 0 && this.distractorMistakes.length === 0);
+                cond('lightning', (this.state.settings.timeLimit || 60) - this.timeLeft < 30);
+                cond('combo_master', this.comboCount >= 5);
+                cond('trap_catcher', this.activeDistractors.length > 0 && this.distractorMistakes.length === 0);
+                cond('brainiac', this.state.settings.gameMode === 'memory');
+                cond('audio_ninja', this.state.settings.gameMode === 'listen');
+                cond('flawless', this.mistakes.size === 0 && this.distractorMistakes.length === 0);
+                cond('champion', this.score >= 1000);
+                if(newly.length > 0) {
+                    setLS('mgb_achievements', unlocked);
+                    this.renderAchGrid();
+                }
+                return newly;
+            }
+
+            /* БАГ №3: renderStreakUI() */
+            renderStreakUI() {
+                const s = getLS('mgb_streak', { currentStreak: 0, lastPlayDate: '', bestStreak: 0 });
+                document.getElementById('streak-cur-ui').textContent = s.currentStreak;
+                document.getElementById('streak-best-ui').textContent = s.bestStreak;
+                const f = document.getElementById('streak-fires-ui');
+                f.className = 'streak-fires' + (s.currentStreak > 0 ? ' active-1' : '') + (s.currentStreak >= 3 ? ' active-2' : '') + (s.currentStreak >= 7 ? ' active-3' : '');
+            }
+
+            /* БАГ №4: updateStreak() */
+            updateStreak(isWin) {
+                if(!isWin) return;
+                const s = getLS('mgb_streak', { currentStreak: 0, lastPlayDate: '', bestStreak: 0 });
+                const today = new Date().toISOString().split('T')[0];
+                if(s.lastPlayDate !== today) {
+                    const yst = new Date(); yst.setDate(yst.getDate()-1);
+                    const yesterday = yst.toISOString().split('T')[0];
+                    if(s.lastPlayDate === yesterday) s.currentStreak++; else s.currentStreak = 1;
+                    s.lastPlayDate = today;
+                    if(s.currentStreak > s.bestStreak) s.bestStreak = s.currentStreak;
+                    setLS('mgb_streak', s);
+                    this.renderStreakUI();
+                    const msg = document.getElementById('streak-msg-container');
+                    msg.textContent = `🔥 Серия: ${s.currentStreak} дней!`;
+                    msg.style.display = 'block';
+                }
+            }
+
+            /* БАГ №5: applyTheme() */
+            applyTheme(theme) {
+                const t = THEMES[theme] || THEMES.default;
+                document.documentElement.style.setProperty('--bg-color', t.bg);
+                document.documentElement.style.setProperty('--panel-bg', t.panel);
+                document.documentElement.style.setProperty('--border-color', t.border);
+                document.documentElement.style.setProperty('--primary', t.primary);
+                document.documentElement.style.setProperty('--primary-hover', t.hover);
+                document.documentElement.style.setProperty('--secondary', t.secondary);
+                document.documentElement.style.setProperty('--accent', t.accent);
+                document.documentElement.style.setProperty('--error', t.error);
+            }
+
+            /* БАГ №9: updateTotalCoinsUI() */
+            updateTotalCoinsUI() {
+                document.getElementById('total-coins-ui').textContent = getLS('mgb_total_coins', 0);
+            }
+
             bindEvents() {
                 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', (e) => this.setMode(e.target.value)));
-                document.querySelectorAll('input[name="set-gamemode"]').forEach(r => r.addEventListener('change', (e) => this.state.settings.gameMode = e.target.value));
+                
+                /* БАГ №13: Смена gameMode в режиме play не перезапускает */
+                document.querySelectorAll('input[name="set-gamemode"]').forEach(r => 
+                    r.addEventListener('change', (e) => {
+                        this.state.settings.gameMode = e.target.value;
+                        if(this.mode === 'play') this.startGame(this.state.pairs, this.state.distractors);
+                        else this.renderCanvas();
+                    })
+                );
                 
                 document.getElementById('set-penalty').value = this.state.settings.penalty; document.getElementById('set-reward').value = this.state.settings.reward; document.getElementById('set-time').value = this.state.settings.timeLimit;
                 document.getElementById('set-penalty').addEventListener('change', e => this.state.settings.penalty = +e.target.value); document.getElementById('set-reward').addEventListener('change', e => this.state.settings.reward = +e.target.value); document.getElementById('set-time').addEventListener('change', e => this.state.settings.timeLimit = +e.target.value);
@@ -697,7 +794,6 @@
                 
                 document.getElementById('wheel-spin-btn').addEventListener('click', () => this.spinWheel());
                 
-                // chest listeners in editor
                 document.getElementById('chest-btn').addEventListener('click', () => this.openChest());
                 document.getElementById('open-chest-btn').addEventListener('click', () => this.openChest());
 
@@ -759,6 +855,43 @@
                 this.canvas.addEventListener('pointerdown', this.onPointerDown.bind(this));
                 document.addEventListener('pointermove', this.onPointerMove.bind(this));
                 document.addEventListener('pointerup', this.onPointerUp.bind(this));
+                
+                /* БАГ №6: set-hearts, set-hearts-max, set-spaced НЕ ПРИВЯЗАНЫ */
+                document.getElementById('set-hearts').checked = this.state.settings.heartsEnabled;
+                document.getElementById('set-hearts-max').value = this.state.settings.heartsMax;
+                document.getElementById('hearts-max-container').style.display = this.state.settings.heartsEnabled ? 'flex' : 'none';
+                document.getElementById('set-spaced').checked = this.state.settings.spacedEnabled;
+
+                document.getElementById('set-hearts').addEventListener('change', e => {
+                    this.state.settings.heartsEnabled = e.target.checked;
+                    document.getElementById('hearts-max-container').style.display = e.target.checked ? 'flex' : 'none';
+                });
+                document.getElementById('set-hearts-max').addEventListener('change', e => {
+                    this.state.settings.heartsMax = Math.max(1, Math.min(5, +e.target.value));
+                });
+                document.getElementById('set-spaced').addEventListener('change', e => {
+                    this.state.settings.spacedEnabled = e.target.checked;
+                });
+
+                /* БАГ №5: applyTheme() привязка */
+                document.querySelectorAll('.theme-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        this.state.settings.currentTheme = e.target.dataset.theme;
+                        this.applyTheme(this.state.settings.currentTheme);
+                        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                    });
+                });
+
+                /* БАГ №7: btn-open-wheel НЕ ОТКРЫВАЕТ МОДАЛКУ */
+                document.getElementById('btn-open-wheel').addEventListener('click', () => {
+                    document.getElementById('wheel-modal').classList.add('active');
+                });
+
+                /* БАГ №8: btn-open-creator НЕ ОТКРЫВАЕТ МОДАЛКУ */
+                document.getElementById('btn-open-creator').addEventListener('click', () => {
+                    document.getElementById('creator-modal').classList.add('active');
+                });
             }
 
             async generatePairs() {
@@ -848,6 +981,18 @@
                 document.getElementById('set-speech').checked = this.state.settings.speechEnabled; document.getElementById('set-speech-lang').value = this.state.settings.speechLang || 'auto'; document.getElementById('speech-lang-container').style.display = this.state.settings.speechEnabled ? 'flex' : 'none';
                 if(v.bgImageBase64) { this.canvas.style.backgroundImage = `url(${v.bgImageBase64})`; this.canvas.style.backgroundSize = 'cover'; this.canvas.style.backgroundPosition = 'center'; } else { this.canvas.style.backgroundImage = 'none'; }
                 document.getElementById('btn-open-creator').style.display = this.state.settings.creatorEnabled ? 'inline-block' : 'none';
+                
+                /* БАГ №6: обновление UI жизней и spaced при загрузке настроек */
+                document.getElementById('set-hearts').checked = this.state.settings.heartsEnabled;
+                document.getElementById('set-hearts-max').value = this.state.settings.heartsMax || 3;
+                document.getElementById('hearts-max-container').style.display = this.state.settings.heartsEnabled ? 'flex' : 'none';
+                document.getElementById('set-spaced').checked = this.state.settings.spacedEnabled;
+
+                /* БАГ №5: applyTheme() при загрузке */
+                this.applyTheme(this.state.settings.currentTheme || 'default');
+                document.querySelectorAll('.theme-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.theme === (this.state.settings.currentTheme || 'default'));
+                });
             }
 
             setMode(newMode) {
@@ -862,7 +1007,6 @@
                 document.querySelector(`input[value="${newMode}"]`).checked = true;
             }
 
-            // ИСПРАВЛЕНИЕ 6: Методы для работы Editor Play Mode (аналогично плееру)
             renderHearts() {
                 const hc = document.getElementById('hearts-container');
                 if(this.state.settings.heartsEnabled) {
@@ -899,23 +1043,52 @@
                     }
                 }
             }
+            
+            /* БАГ №10: openChest НЕ СОХРАНЯЕТ монеты */
             openChest() {
-                const btn = document.getElementById('chest-btn'); btn.classList.add('opening');
-                setTimeout(() => { btn.classList.remove('opening'); btn.classList.add('opened'); btn.textContent = '🎉'; document.getElementById('chest-result').textContent = '+50 Coins!'; document.getElementById('open-chest-btn').style.display = 'none'; }, 1000);
+                const btn = document.getElementById('chest-btn');
+                if(btn.classList.contains('opened')) return;
+                btn.classList.add('opening');
+                setTimeout(() => {
+                    btn.classList.remove('opening'); btn.classList.add('opened'); btn.textContent = '🎉';
+                    const r = Math.random(); let txt = '';
+                    if(r < 0.6) { txt = '+50 Coins!'; setLS('mgb_total_coins', getLS('mgb_total_coins',0) + 50); }
+                    else if(r < 0.9) { txt = '⭐ Double next game!'; setLS('mgb_double_next', 1); }
+                    else { txt = '💎 Rare Badge!'; }
+                    document.getElementById('chest-result').textContent = txt;
+                    document.getElementById('open-chest-btn').style.display = 'none';
+                    this.updateTotalCoinsUI();
+                }, 1000);
             }
 
             startGame(pairsToPlay, distractorsToPlay = this.state.distractors || []) {
                 document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
-                document.querySelector('.canvas-header').style.visibility = 'visible';
+                
+                /* ИСПРАВЛЕНИЕ: Баг 3 - Изменен ID на корректный */
+                document.getElementById('game-header-el').style.visibility = 'visible';
+                
+                /* ИСПРАВЛЕНИЕ: Баг 1 - Добавлен this. */
                 if(this.audioCtx.state === 'suspended') this.audioCtx.resume();
                 if(this.state.settings.audio.bgMusicBase64) this.bgAudio.play().catch(e=>{});
                 
-                this.activePairs = pairsToPlay; this.activeDistractors = distractorsToPlay;
+                this.activePairs = pairsToPlay; 
+                this.activeDistractors = distractorsToPlay;
+
+                /* ИСПРАВЛЕНИЕ: Баг 2 - Добавлен this. и реализована логика для режима Speed */
+                if (this.state.settings.gameMode === 'speed') { 
+                    this.timeLeft = 30; 
+                    this.speedReserve = [...pairsToPlay]; 
+                    this.activePairs = this.speedReserve.splice(0, 6); 
+                    this.activeDistractors = []; 
+                } else {
+                    this.timeLeft = this.state.settings.timeLimit || 60;
+                }
+
                 this.mistakes.clear(); this.distractorMistakes = [];
                 this.consecutiveMistakes = 0; this.isAdaptiveActive = false; this.canvas.classList.remove('adaptive-active'); this.pairMistakes.clear();
                 
-                this.score = 0; this.comboCount = 0; this.timeLeft = this.state.settings.timeLimit || 60;
-                this.speedReserve = []; this.flippedMemoryCards = []; this.memoryMoves = 0; this.renderHearts();
+                this.score = 0; this.comboCount = 0; 
+                this.flippedMemoryCards = []; this.memoryMoves = 0; this.renderHearts();
                 
                 this.sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('student-name-input').value || 'Student', gameMode: this.state.settings.gameMode, pairs: {} };
                 this.activePairs.forEach(p => { this.sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
@@ -936,7 +1109,10 @@
             }
 
             updateDuelUI() {
-                document.getElementById('duel-s1').textContent = this.duelScoreP1; document.getElementById('duel-s2').textContent = this.duelScoreP2;
+                /* ИСПРАВЛЕНИЕ: Баг 4 - Использование innerHTML вместо textContent на несуществующих элементах */
+                document.getElementById('duel-p1-ui').innerHTML = `P1 (${this.state.settings.duelP1 || 'Player 1'}): <span>${this.duelScoreP1}</span>`;
+                document.getElementById('duel-p2-ui').innerHTML = `P2 (${this.state.settings.duelP2 || 'Player 2'}): <span>${this.duelScoreP2}</span>`;
+
                 document.getElementById('duel-p1-ui').className = `duel-player ${this.duelTurn === 1 ? 'active-turn' : ''}`;
                 document.getElementById('duel-p2-ui').className = `duel-player ${this.duelTurn === 2 ? 'active-turn' : ''}`;
                 const n = this.duelTurn === 1 ? (this.state.settings.duelP1 || i18n[currentLang].duel_p1) : (this.state.settings.duelP2 || i18n[currentLang].duel_p2);
@@ -946,8 +1122,14 @@
             startRetryGame() { const arr = Array.from(this.mistakes); this.setMode('play'); this.startGame(this.state.pairs.filter(p => arr.includes(p.id)), []); }
 
             endGame(isWin, isPreview = false) {
+                /* БАГ №9: updateTotalCoinsUI */
+                this.updateTotalCoinsUI();
+                
                 clearInterval(this.timerInterval); this.bgAudio.pause();
                 if (isWin && !isPreview && this.state.settings.confettiEnabled) launchConfetti();
+                
+                /* БАГ №4: updateStreak */
+                if(isWin && !isPreview) this.updateStreak(true);
 
                 const isDuel = this.state.settings.duelEnabled && this.state.settings.gameMode === 'match';
                 document.getElementById('feedback-title').textContent = isWin ? i18n[currentLang].msg_win : i18n[currentLang].msg_lose;
@@ -1011,6 +1193,21 @@
                 else { document.getElementById('btn-open-wheel').style.display = 'none'; }
 
                 this.updateSpacedHistory();
+                
+                /* БАГ №2: checkAchievements logic */
+                const newly = this.checkAchievements(isWin);
+                if(newly.length > 0 && !isPreview) {
+                    document.getElementById('new-ach-container').style.display = 'block';
+                    const list = document.getElementById('new-ach-list');
+                    list.innerHTML = '';
+                    newly.forEach(id => {
+                        const def = ACH_DEFS.find(x=>x.id===id);
+                        list.innerHTML += `<div class="ach-badge unlocked">${def.icon}</div>`;
+                    });
+                } else {
+                    document.getElementById('new-ach-container').style.display = 'none';
+                }
+
                 this.feedbackScreen.classList.add('active');
             }
 
@@ -1035,6 +1232,17 @@
             onPointerDown(e) {
                 const target = e.target.closest('.game-item'); if (!target) return;
                 if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                
+                /* БАГ №11: Listen режим не озвучивает при клике */
+                if (this.mode === 'play' && this.state.settings.gameMode === 'listen') {
+                    const text = target.innerHTML.replace(/<[^>]*>?/gm,'').trim();
+                    if (text) {
+                        const utter = new SpeechSynthesisUtterance(text);
+                        if(this.state.settings.speechLang && this.state.settings.speechLang !== 'auto') utter.lang = this.state.settings.speechLang;
+                        speechSynthesis.speak(utter);
+                    }
+                }
+
                 if (this.mode === 'play' && this.state.settings.gameMode === 'memory' && target.classList.contains('face-down')) {
                     this.checkMemoryMatch(target); return;
                 }
@@ -1099,6 +1307,19 @@
                             dropTarget.classList.add('flash'); el.style.opacity = '0';
                             setTimeout(() => { 
                                 el.classList.add('matched'); dropTarget.classList.add('matched'); dropTarget.classList.remove('flash'); 
+                                
+                                /* БАГ №12: Speed режим не дополняет пары из резерва */
+                                if(this.state.settings.gameMode === 'speed' && this.speedReserve && this.speedReserve.length > 0) {
+                                    const nextPair = this.speedReserve.shift();
+                                    this.activePairs.push(nextPair);
+                                    [nextPair.item1, nextPair.item2].forEach((d, i) => {
+                                        const elDiv = document.createElement('div'); elDiv.className = 'game-item'; elDiv.innerHTML = d.content;
+                                        elDiv.style.left = (50 + Math.random()*200) + 'px'; elDiv.style.top = (50 + Math.random()*200) + 'px';
+                                        elDiv.dataset.pairId = nextPair.id; elDiv.dataset.type = i===0?'1':'2';
+                                        this.canvas.appendChild(elDiv);
+                                    });
+                                }
+
                                 if (this.canvas.querySelectorAll('.game-item:not(.matched):not(.distractor)').length === 0) this.endGame(true); 
                             }, 400);
                         } else {
@@ -1243,8 +1464,8 @@
             
             downloadFile(dataStr, filename) { const a = document.createElement('a'); a.href = dataStr; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
 
+            /* ИСПРАВЛЕНИЕ: Баг 5 - Обновленный генератор HTML с правильными фиксами */
             generateStandaloneHTMLContent() {
-                // ИСПРАВЛЕНИЕ 5: Полностью собранный HTML-плеер со всеми стилями и функциями
                 const langData = JSON.stringify(i18n[currentLang]).replace(/<\/script>/gi, '<\\/script>');
                 const stateData = JSON.stringify(this.state).replace(/<\/script>/gi, '<\\/script>');
                 return `<!DOCTYPE html>
@@ -1330,8 +1551,8 @@
         <div id="duel-fb-container" style="display:none; text-align:center; margin-bottom:15px; background:#fffdf5; padding:15px; border-radius:12px; border:2px solid var(--accent); width:80%;">
             <h2 id="duel-fb-winner" style="color:var(--primary); margin:0 0 10px 0;"></h2>
             <div style="display:flex; justify-content:space-around; font-size:18px; font-weight:bold; color:#2d3436;">
-                <div><span id="duel-fb-n1"></span>: <span id="duel-fb-s1" style="color:var(--primary);">0</span></div>
-                <div><span id="duel-fb-n2"></span>: <span id="duel-fb-s2" style="color:var(--secondary);">0</span></div>
+                <div id="duel-p1-fb-ui"></div>
+                <div id="duel-p2-fb-ui"></div>
             </div>
         </div>
         
@@ -1363,7 +1584,6 @@
         </div>
     </div>
 
-    <!-- Модалка колеса фортуны -->
     <div id="wheel-modal" class="overlay">
         <div class="wheel-modal">
             <h2 style="margin-top:0;" id="t-wheel-title">Колесо Фортуны</h2>
@@ -1381,7 +1601,6 @@
         function getLS(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e){ return def; } }
         function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
         
-        // Определение констант геймификации в плеере
         const ACH_DEFS = [ {id:'first_win', icon:'🌟', hint:'Первая победа'}, {id:'sniper', icon:'🎯', hint:'100% точность'}, {id:'lightning', icon:'⚡', hint:'Игра за <30 сек'}, {id:'combo_master', icon:'🔥', hint:'Combo x5'}, {id:'trap_catcher', icon:'🎭', hint:'Без ошибок на ловушках'}, {id:'brainiac', icon:'🧠', hint:'Memory пройден'}, {id:'audio_ninja', icon:'🎧', hint:'Listen пройден'}, {id:'flawless', icon:'💎', hint:'3 игры без ошибок'}, {id:'champion', icon:'👑', hint:'1000+ баллов'} ];
         const THEMES = { default: {bg:'#f0f8ff', panel:'#ffffff', border:'#d1d8e0', primary:'#ff7675', hover:'#d63031', secondary:'#00cec9', accent:'#fdcb6e', error:'#ff4757', text:'#2d3436'}, space: {bg:'#1a1a2e', panel:'#16213e', border:'#0f3460', primary:'#00ff88', hover:'#00cc6a', secondary:'#ff00ff', accent:'#00ff88', error:'#ff0055', text:'#ffffff'}, detective: {bg:'#f4e4c1', panel:'#e8d5a8', border:'#8b4513', primary:'#8b4513', hover:'#5d2e0c', secondary:'#a0522d', accent:'#d2691e', error:'#8b0000', text:'#3e2723'}, magic: {bg:'#2d1b4e', panel:'#3d2b5e', border:'#6c5ce7', primary:'#a29bfe', hover:'#6c5ce7', secondary:'#fdcb6e', accent:'#fdcb6e', error:'#ff4757', text:'#ffffff'}, ocean: {bg:'#e0f7fa', panel:'#b2ebf2', border:'#00acc1', primary:'#00acc1', hover:'#00838f', secondary:'#ffeaa7', accent:'#ffeaa7', error:'#ff4757', text:'#2d3436'} };
 
@@ -1415,11 +1634,11 @@
         let sessionAnalytics = null, dragStartTime = 0;
         let duelTurn = 1, duelScoreP1 = 0, duelScoreP2 = 0;
         let heartsLeft = 0, flippedMemoryCards = [], memoryMoves = 0;
+        let speedReserve = []; // ИСПРАВЛЕНИЕ: Добавлено для Speed режима
         
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const bgAudio = new Audio(); if(state.settings.audio.bgMusicBase64){ bgAudio.src = state.settings.audio.bgMusicBase64; bgAudio.loop = true; }
 
-        // ИСПРАВЛЕНИЕ 6: Полноценная реализация функций плеера
         function renderHearts() {
             const hc = document.getElementById('hearts-container');
             if(state.settings.heartsEnabled) {
@@ -1439,9 +1658,12 @@
             if(count > 0) { document.getElementById('spaced-msg-container').style.display = 'block'; document.getElementById('spaced-count').textContent = count; }
         }
         function updateDuelUI() {
-            document.getElementById('duel-s1').textContent = duelScoreP1; document.getElementById('duel-s2').textContent = duelScoreP2;
+            /* ИСПРАВЛЕНИЕ: Баг 4 - Использование innerHTML вместо textContent на несуществующих элементах для Standalone */
+            document.getElementById('duel-p1-ui').innerHTML = \`P1 (\${state.settings.duelP1 || 'Player 1'}): <span>\${duelScoreP1}</span>\`;
             document.getElementById('duel-p1-ui').className = \`duel-player \${duelTurn === 1 ? 'active-turn' : ''}\`;
+            document.getElementById('duel-p2-ui').innerHTML = \`P2 (\${state.settings.duelP2 || 'Player 2'}): <span>\${duelScoreP2}</span>\`;
             document.getElementById('duel-p2-ui').className = \`duel-player \${duelTurn === 2 ? 'active-turn' : ''}\`;
+            
             const n = duelTurn === 1 ? (state.settings.duelP1 || i18n.duel_p1) : (state.settings.duelP2 || i18n.duel_p2);
             document.getElementById('duel-turn-ui').textContent = \`\${i18n.duel_turn || 'Turn:'} \${n}\`;
         }
@@ -1481,13 +1703,24 @@
 
         function startGame(pairs = state.pairs, distractors = (state.distractors || [])) {
             document.getElementById('start-screen').classList.remove('active'); document.getElementById('feedback-screen').classList.remove('active');
-            document.querySelector('.header').style.visibility = 'visible';
+            document.getElementById('game-header').style.visibility = 'visible';
             if(audioCtx.state === 'suspended') audioCtx.resume();
             if(state.settings.audio.bgMusicBase64) bgAudio.play().catch(e=>{});
             
-            activePairs = pairs; mistakes.clear(); distractorMistakes = []; score = 0; comboCount = 0; timeLeft = state.settings.timeLimit || 60;
+            activePairs = pairs; activeDistractors = distractors;
+            mistakes.clear(); distractorMistakes = []; score = 0; comboCount = 0; 
             consecutiveMistakes = 0; isAdaptiveActive = false; canvas.classList.remove('adaptive-active'); pairMistakes.clear();
             flippedMemoryCards = []; memoryMoves = 0; renderHearts();
+
+            /* ИСПРАВЛЕНИЕ: Баг 2 - Логика для режима Speed в Standalone */
+            if (state.settings.gameMode === 'speed') {
+                timeLeft = 30;
+                speedReserve = [...pairs];
+                activePairs = speedReserve.splice(0, 6);
+                activeDistractors = [];
+            } else {
+                timeLeft = state.settings.timeLimit || 60;
+            }
             
             sessionAnalytics = { sessionId: Date.now(), date: new Date().toISOString(), studentName: document.getElementById('stud-name').value || 'Student', gameMode: state.settings.gameMode, pairs: {} };
             activePairs.forEach(p => { sessionAnalytics.pairs[p.id] = { pairId: p.id, attempts: 0, mistakes: 0, timeTotalMs: 0, distractorErr: 0 }; });
@@ -1497,8 +1730,6 @@
             document.getElementById('duel-ui').style.display = isDuel ? 'flex' : 'none';
             if(isDuel) {
                 duelTurn = 1; duelScoreP1 = 0; duelScoreP2 = 0;
-                document.getElementById('duel-n1').textContent = state.settings.duelP1 || i18n.duel_p1;
-                document.getElementById('duel-n2').textContent = state.settings.duelP2 || i18n.duel_p2;
                 updateDuelUI();
             } else { document.getElementById('score').textContent = score; }
             
@@ -1511,7 +1742,7 @@
                 if(state.settings.gameMode === 'memory') el.classList.add('face-down');
                 el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; el.dataset.pairId = pair.id; el.dataset.type = i===0?'1':'2'; canvas.appendChild(el);
             });});
-            distractors.forEach(d => { const el = document.createElement('div'); el.className = 'game-item distractor'; el.innerHTML = d.content; if(state.settings.gameMode === 'memory') el.classList.add('face-down'); el.dataset.id = d.id; el.dataset.type = 'd'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; canvas.appendChild(el); });
+            activeDistractors.forEach(d => { const el = document.createElement('div'); el.className = 'game-item distractor'; el.innerHTML = d.content; if(state.settings.gameMode === 'memory') el.classList.add('face-down'); el.dataset.id = d.id; el.dataset.type = 'd'; el.style.left = d.x + 'px'; el.style.top = d.y + 'px'; canvas.appendChild(el); });
         }
         function startRetryGame() { const arr = Array.from(mistakes); startGame(state.pairs.filter(p => arr.includes(p.id)), []); }
         function updateCombo() { const ui = document.getElementById('combo-ui'); if(comboCount>=3){ ui.style.display='block'; document.getElementById('c-m').textContent=comboCount>=5?'3':'2'; ui.style.color=comboCount>=5?'#9C27B0':'#FFB300'; } else ui.style.display='none'; }
@@ -1625,8 +1856,8 @@
             
             if (isDuel) {
                 document.getElementById('score-container').style.display = 'none'; document.getElementById('duel-fb-container').style.display = 'block';
-                document.getElementById('duel-fb-n1').textContent = state.settings.duelP1 || i18n.duel_p1; document.getElementById('duel-fb-n2').textContent = state.settings.duelP2 || i18n.duel_p2;
-                document.getElementById('duel-fb-s1').textContent = duelScoreP1; document.getElementById('duel-fb-s2').textContent = duelScoreP2;
+                document.getElementById('duel-p1-fb-ui').innerHTML = \`\${state.settings.duelP1 || i18n.duel_p1}: <span style="color:var(--primary);">\${duelScoreP1}</span>\`;
+                document.getElementById('duel-p2-fb-ui').innerHTML = \`\${state.settings.duelP2 || i18n.duel_p2}: <span style="color:var(--secondary);">\${duelScoreP2}</span>\`;
                 let winnerTxt = i18n.duel_draw;
                 if(duelScoreP1 > duelScoreP2) winnerTxt = \`\${i18n.duel_winner} \${state.settings.duelP1 || i18n.duel_p1}\`;
                 else if(duelScoreP2 > duelScoreP1) winnerTxt = \`\${i18n.duel_winner} \${state.settings.duelP2 || i18n.duel_p2}\`;
